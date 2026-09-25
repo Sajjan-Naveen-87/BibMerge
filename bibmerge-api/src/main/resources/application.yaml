@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: bibmerge
+
+server:
+  port: 8080
