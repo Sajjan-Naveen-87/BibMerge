@@ -85,12 +85,45 @@ acknowledgement is attached as Appendix A of the proposal
 
 ```
 .
-├── README.md
-└── doc/
-    ├── proposal.tex          # Project proposal (LaTeX source)
-    ├── stakeholder-email.pdf # Stakeholder acknowledgement (Appendix A)
-    └── proposal-template.pdf # Course-provided template
+├── pom.xml                  # Maven reactor
+├── mvnw, mvnw.cmd           # Maven wrapper (no local Maven needed)
+├── bibmerge-core/           # Merge engine -- plain Java 21, no Spring
+├── bibmerge-api/            # Spring Boot REST API + CLI (builds bibmerge.jar)
+├── bibmerge-web/            # React + TypeScript front end (Vite)
+├── design/design.md         # Design document (v2, 11 Sep 2026)
+├── doc/
+│   ├── proposal.tex          # Project proposal (LaTeX source)
+│   ├── stakeholder-email.pdf # Stakeholder acknowledgement (Appendix A)
+│   ├── Proj-Approval.pdf     # Project approval
+│   └── proposal-template.pdf # Course-provided template
+└── .github/workflows/ci.yml # CI: backend verify + frontend lint/build
 ```
+
+The real stakeholder corpus goes in `corpus.local/`, which is git-ignored
+and never committed (design doc ADR-14).
+
+## Building and running
+
+Requirements: JDK 21+ and Node 22+.
+
+```bash
+./mvnw verify                             # build + run all backend tests
+java -jar bibmerge-api/target/bibmerge.jar --help
+java -jar bibmerge-api/target/bibmerge.jar  # serves http://localhost:8080
+```
+
+If port 8080 is taken, add `--server.port=8091`.
+
+Front end in development (proxies `/api` to the backend):
+
+```bash
+cd bibmerge-web
+npm install
+npm run dev                               # http://localhost:5173
+```
+
+Point it at a different backend port with
+`BIBMERGE_API=http://localhost:8091 npm run dev`.
 
 ## Building the proposal PDF
 

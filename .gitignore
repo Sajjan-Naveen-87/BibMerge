@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Real stakeholder corpus -- never committed (design doc ADR-14)
+corpus.local/
+
+# Java / Maven
+target/
+*.class
+*.log
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Node / Vite
+node_modules/
+dist/
+
+# Runtime data
+data/
+*.mv.db
+*.trace.db
+
+# LaTeX build output
+doc/*.aux
+doc/*.fdb_latexmk
+doc/*.fls
+doc/*.out
+doc/*.synctex.gz

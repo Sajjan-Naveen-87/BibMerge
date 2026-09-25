@@ -1,0 +1,11 @@
+main {
+  max-width: 40rem;
+  margin: 4rem auto;
+  padding: 0 1rem;
+  text-align: left;
+}
+
+.status {
+  font-family: ui-monospace, monospace;
+  opacity: 0.8;
+}
