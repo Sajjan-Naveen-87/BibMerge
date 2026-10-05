@@ -45,7 +45,12 @@ public final class DecisionPolicy {
         double titleJw = features.get(Feature.TITLE_JW).orElse(-1);
         double titleJaccard = features.get(Feature.TITLE_JACCARD).orElse(-1);
 
-        // Rule 3: vetoes.
+        // Rule 3: vetoes. Two different arXiv or ePrint ids are never one work (revisions
+        // keep their id); a DOI conflict is excused only for a preprint/published pair.
+        if (preprintIdsConflict(a, b)) {
+            return decision(pair, Decision.DISTINCT, score, "veto:preprint-id-conflict",
+                    features);
+        }
         if (ids == IdAgreement.CONFLICT && !versionPair) {
             return decision(pair, Decision.DISTINCT, score, "veto:identifier-conflict", features);
         }
@@ -113,6 +118,14 @@ public final class DecisionPolicy {
     private static String partNumber(String title) {
         var m = PART.matcher(title);
         return m.find() ? m.group(1) : "";
+    }
+
+    private static boolean preprintIdsConflict(NormalizedRecord a, NormalizedRecord b) {
+        return differ(a.ids().arxiv(), b.ids().arxiv()) || differ(a.ids().iacr(), b.ids().iacr());
+    }
+
+    private static boolean differ(String x, String y) {
+        return x != null && y != null && !x.equals(y);
     }
 
     private static boolean isPreprintAndVersionOfRecord(NormalizedRecord a, NormalizedRecord b) {
