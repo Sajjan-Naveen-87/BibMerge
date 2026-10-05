@@ -1,5 +1,6 @@
 package io.bibmerge.core.normalize;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -14,12 +15,18 @@ public final class VersionRoleDetector {
             "\\b(?:arxiv|corr|e-?print|preprint|ssrn|biorxiv|medrxiv)\\b",
             Pattern.CASE_INSENSITIVE);
 
+    /** DOIs minted by preprint servers: SSRN, bioRxiv/medRxiv, Research Square, OSF. */
+    private static final List<String> PREPRINT_DOI_PREFIXES = List.of(
+            "10.2139/", "10.1101/", "10.21203/", "10.31219/");
+
     private VersionRoleDetector() {
     }
 
     public static VersionRole detect(SourceRecord record, Identifiers ids) {
         if (ids.doi() != null) {
-            return VersionRole.VERSION_OF_RECORD;
+            return PREPRINT_DOI_PREFIXES.stream().anyMatch(ids.doi()::startsWith)
+                    ? VersionRole.PREPRINT
+                    : VersionRole.VERSION_OF_RECORD;
         }
         String venue = record.field("journal").or(() -> record.field("booktitle")).orElse("");
         if (!venue.isBlank() && !PREPRINT_VENUE.matcher(venue).find()) {
