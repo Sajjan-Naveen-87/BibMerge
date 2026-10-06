@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.bibmerge.core.model.CanonicalEntry;
@@ -16,7 +15,6 @@ import io.bibmerge.core.model.ParseResult;
 import io.bibmerge.core.model.SourceRecord;
 import io.bibmerge.core.parse.BibParser;
 
-@Disabled("TODO(vamshi): remove once BibWriter is implemented")
 class BibWriterTest {
 
     private static CanonicalEntry entry(String key, Map<String, String> fields,
@@ -52,6 +50,17 @@ class BibWriterTest {
                 .contains("ids = {a,b}"));
         assertFalse(new BibWriter().write(List.of(e), List.of(), Dialect.BIBTEX)
                 .contains("ids ="));
+    }
+
+    @Test
+    void sourceIdsAreKeptAlongsideRetiredKeys() {
+        CanonicalEntry e = entry("lee2020graphs", fields("title", "G", "ids", "old, a"),
+                List.of("a", "b"));
+
+        String bib = new BibWriter().write(List.of(e), List.of(), Dialect.BIBLATEX);
+
+        assertTrue(bib.contains("ids = {a,b,old}"), bib);
+        assertEquals(bib.indexOf("ids ="), bib.lastIndexOf("ids ="));
     }
 
     @Test
