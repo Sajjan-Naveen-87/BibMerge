@@ -20,6 +20,10 @@ import io.bibmerge.core.normalize.RecordNormalizer;
  *
  * <p>Rules, in order, per field over every member's effective fields:
  * <ol>
+ *   <li>when the cluster mixes a preprint and a published version, a value from the
+ *       version of record wins, so an ePrint's year never lands on its CRYPTO entry.
+ *       This comes before the DOI rule because an SSRN or bioRxiv preprint has a DOI
+ *       too;</li>
  *   <li>a value from a record with a DOI wins;</li>
  *   <li>otherwise the longest non-blank value, counting content only: braces and
  *       line wrapping are not content, so {@code {{NEW DIRECTIONS}}} or a value split
@@ -50,8 +54,10 @@ public final class GoldenRecordBuilder {
     /** @param taken keys already issued in this run; the minted key is added to it */
     public CanonicalEntry build(Cluster cluster, Set<String> taken) {
         List<NormalizedRecord> members = cluster.members();
-        Map<String, String> fields = chooseFields(members);
-        String entryType = chooseEntryType(members);
+        boolean mixed = members.stream().anyMatch(m -> m.versionRole() == VersionRole.PREPRINT)
+                && members.stream().anyMatch(GoldenRecordBuilder::isVersionOfRecord);
+        Map<String, String> fields = chooseFields(members, mixed);
+        String entryType = chooseEntryType(members, mixed);
 
         SourceRecord first = members.get(0).source();
         NormalizedRecord golden = RecordNormalizer.normalize(SourceRecord.of(
@@ -68,7 +74,8 @@ public final class GoldenRecordBuilder {
         return new CanonicalEntry(key, entryType, fields, sources, retiredKeys);
     }
 
-    private static Map<String, String> chooseFields(List<NormalizedRecord> members) {
+    private static Map<String, String> chooseFields(List<NormalizedRecord> members,
+            boolean mixed) {
         Set<String> names = new LinkedHashSet<>();
         for (NormalizedRecord member : members) {
             names.addAll(member.source().effectiveFields().keySet());
@@ -81,7 +88,7 @@ public final class GoldenRecordBuilder {
             for (NormalizedRecord member : members) {
                 // Strictly better only, so ties keep the earlier member.
                 if (member.source().field(name).isPresent()
-                        && (winner == null || beats(member, winner, name))) {
+                        && (winner == null || beats(member, winner, name, mixed))) {
                     winner = member;
                 }
             }
@@ -95,7 +102,10 @@ public final class GoldenRecordBuilder {
     }
 
     private static boolean beats(NormalizedRecord challenger, NormalizedRecord holder,
-            String name) {
+            String name, boolean mixed) {
+        if (mixed && isVersionOfRecord(challenger) != isVersionOfRecord(holder)) {
+            return isVersionOfRecord(challenger);
+        }
         boolean challengerHasDoi = challenger.ids().doi() != null;
         boolean holderHasDoi = holder.ids().doi() != null;
         if (challengerHasDoi != holderHasDoi) {
@@ -111,14 +121,15 @@ public final class GoldenRecordBuilder {
         return WHITESPACE.matcher(text).replaceAll(" ").strip().length();
     }
 
-    private static String chooseEntryType(List<NormalizedRecord> members) {
-        boolean mixed = members.stream().anyMatch(m -> m.versionRole() == VersionRole.PREPRINT)
-                && members.stream().anyMatch(m -> m.versionRole() == VersionRole.VERSION_OF_RECORD);
+    private static String chooseEntryType(List<NormalizedRecord> members, boolean mixed) {
         List<NormalizedRecord> candidates = mixed
-                ? members.stream().filter(m -> m.versionRole() == VersionRole.VERSION_OF_RECORD)
-                        .toList()
+                ? members.stream().filter(GoldenRecordBuilder::isVersionOfRecord).toList()
                 : members;
         return mostCommonType(candidates).orElseThrow();
+    }
+
+    private static boolean isVersionOfRecord(NormalizedRecord record) {
+        return record.versionRole() == VersionRole.VERSION_OF_RECORD;
     }
 
     /** The most frequent raw entry type; ties go to the type seen first. */

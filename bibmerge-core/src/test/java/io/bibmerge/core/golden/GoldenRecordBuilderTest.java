@@ -55,6 +55,40 @@ class GoldenRecordBuilderTest {
     }
 
     @Test
+    void versionOfRecordWinsOverItsPreprint() {
+        Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
+                @misc{e, author = {Alice Example}, title = {Widgets}, year = 2020,
+                  howpublished = {Cryptology ePrint Archive, Report 2020/123}}
+                @inproceedings{p, author = {Example, A.}, title = {Widgets},
+                  booktitle = {CRYPTO 2021}, year = 2021}
+                """));
+
+        CanonicalEntry entry = builder.build(cluster, new HashSet<>());
+
+        assertEquals("2021", entry.fields().get("year"));
+        assertEquals("Example, A.", entry.fields().get("author"));
+        assertEquals("example2021widgets", entry.key());
+        // Preprint-only fields are still carried over.
+        assertEquals("Cryptology ePrint Archive, Report 2020/123",
+                entry.fields().get("howpublished"));
+    }
+
+    @Test
+    void versionOfRecordWinsEvenWhenOnlyThePreprintHasADoi() {
+        Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
+                @misc{s, author = {Ann Lee}, title = {Markets}, year = 2019,
+                  doi = {10.2139/ssrn.123456}}
+                @article{j, author = {Ann Lee}, title = {Markets}, journal = {J. Finance},
+                  year = 2021}
+                """));
+
+        CanonicalEntry entry = builder.build(cluster, new HashSet<>());
+
+        assertEquals("article", entry.entryType());
+        assertEquals("2021", entry.fields().get("year"));
+    }
+
+    @Test
     void bracesAndLineBreaksDoNotCountAsLength() {
         Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
                 @article{a, author = {Ann Lee and Bo Chen}, title = {New Directions}, year = 2020}
