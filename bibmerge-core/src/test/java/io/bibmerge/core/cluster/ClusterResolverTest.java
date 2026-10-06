@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.bibmerge.core.TestRecords;
@@ -12,7 +11,6 @@ import io.bibmerge.core.match.Matcher;
 import io.bibmerge.core.model.Cluster;
 import io.bibmerge.core.model.NormalizedRecord;
 
-@Disabled("TODO(vamshi): remove once ClusterResolver is implemented")
 class ClusterResolverTest {
 
     private static final String BIB = """
