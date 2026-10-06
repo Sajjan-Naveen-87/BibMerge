@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.bibmerge.core.model.ParseResult;
@@ -15,7 +14,6 @@ import io.bibmerge.core.parse.BibParser;
 import io.bibmerge.core.serialize.Dialect;
 
 /** The mid-demo acceptance test: two papers in, one clean bibliography out. */
-@Disabled("TODO(vamshi): enable once stages 7-9 are implemented")
 class MergePipelineTest {
 
     @Test
