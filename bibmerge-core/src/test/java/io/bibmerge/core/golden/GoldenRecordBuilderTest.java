@@ -1,20 +1,20 @@
 package io.bibmerge.core.golden;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.bibmerge.core.TestRecords;
 import io.bibmerge.core.model.CanonicalEntry;
 import io.bibmerge.core.model.Cluster;
+import io.bibmerge.core.model.NormalizedRecord;
 
-@Disabled("TODO(vamshi): remove once GoldenRecordBuilder is implemented")
 class GoldenRecordBuilderTest {
 
     private final GoldenRecordBuilder builder = new GoldenRecordBuilder(new KeyMinter());
@@ -64,5 +64,60 @@ class GoldenRecordBuilderTest {
         assertEquals("book", entry.entryType());
         assertEquals("P", entry.fields().get("publisher"));
         assertEquals(List.of("k"), entry.retiredKeys());
+    }
+
+    @Test
+    void keyIsMintedFromTheChosenFields() {
+        Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
+                @misc{e, author = {Alice Example}, title = {Widgets}, year = 2020,
+                  howpublished = {Cryptology ePrint Archive, Report 2020/123}}
+                @inproceedings{p, author = {Example, Alice}, title = {Widgets}, year = 2021,
+                  doi = {10.1000/w}}
+                """));
+
+        CanonicalEntry entry = builder.build(cluster, new HashSet<>());
+
+        // The DOI record's year wins, and the key says the same year.
+        assertEquals("example2021widgets", entry.key());
+    }
+
+    @Test
+    void doiIsWrittenInNormalizedForm() {
+        Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
+                @article{a, title = {T}, doi = {10.1109/TIT.1976.1055638}}
+                @article{b, title = {T}, doi = {https://doi.org/10.1109/tit.1976.1055638}}
+                """));
+
+        CanonicalEntry entry = builder.build(cluster, new HashSet<>());
+
+        assertEquals("10.1109/tit.1976.1055638", entry.fields().get("doi"));
+    }
+
+    @Test
+    void inheritedFieldsAreKeptAndCrossrefIsDropped() {
+        NormalizedRecord child = TestRecords.parse("t.bib", """
+                @inproceedings{c, author = {Ann Lee}, title = {Graphs}, crossref = {proc}}
+                @proceedings{proc, title = {Proceedings of Graphs 2020}, year = 2020}
+                """).get(0);
+
+        CanonicalEntry entry = builder.build(new Cluster(List.of(child)), new HashSet<>());
+
+        assertEquals("Proceedings of Graphs 2020", entry.fields().get("booktitle"));
+        assertEquals("2020", entry.fields().get("year"));
+        assertFalse(entry.fields().containsKey("crossref"));
+    }
+
+    @Test
+    void retiredKeysSkipTheMintedKeyAndRepeats() {
+        Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
+                @article{lee2020graphs, author = {Ann Lee}, title = {Graphs}, year = 2020}
+                @article{lee2020graphs, author = {Lee, A.}, title = {Graphs}, year = 2020}
+                @article{LeeGraphs, author = {Lee, Ann}, title = {Graphs}, year = 2020}
+                """));
+
+        CanonicalEntry entry = builder.build(cluster, new HashSet<>());
+
+        assertEquals("lee2020graphs", entry.key());
+        assertEquals(List.of("LeeGraphs"), entry.retiredKeys());
     }
 }
