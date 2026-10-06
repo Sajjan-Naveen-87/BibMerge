@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import io.bibmerge.core.model.CanonicalEntry;
 import io.bibmerge.core.model.Cluster;
@@ -20,7 +21,9 @@ import io.bibmerge.core.normalize.RecordNormalizer;
  * <p>Rules, in order, per field over every member's effective fields:
  * <ol>
  *   <li>a value from a record with a DOI wins;</li>
- *   <li>otherwise the longest non-blank value;</li>
+ *   <li>otherwise the longest non-blank value, counting content only: braces and
+ *       line wrapping are not content, so {@code {{NEW DIRECTIONS}}} or a value split
+ *       over two lines does not beat the same text written plainly;</li>
  *   <li>ties go to the earliest member.</li>
  * </ol>
  * Fields present in only one member are carried over; {@code crossref} is dropped
@@ -33,6 +36,10 @@ import io.bibmerge.core.normalize.RecordNormalizer;
  * Retired keys: every distinct member key other than the minted one.
  */
 public final class GoldenRecordBuilder {
+
+    private static final Pattern BRACES = Pattern.compile("[{}]");
+
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     private final KeyMinter keyMinter;
 
@@ -94,8 +101,14 @@ public final class GoldenRecordBuilder {
         if (challengerHasDoi != holderHasDoi) {
             return challengerHasDoi;
         }
-        return challenger.source().field(name).get().length()
-                > holder.source().field(name).get().length();
+        return contentLength(challenger.source().field(name).get())
+                > contentLength(holder.source().field(name).get());
+    }
+
+    /** Length without braces, with each whitespace run (line breaks included) as one. */
+    private static int contentLength(String value) {
+        String text = BRACES.matcher(value).replaceAll("");
+        return WHITESPACE.matcher(text).replaceAll(" ").strip().length();
     }
 
     private static String chooseEntryType(List<NormalizedRecord> members) {

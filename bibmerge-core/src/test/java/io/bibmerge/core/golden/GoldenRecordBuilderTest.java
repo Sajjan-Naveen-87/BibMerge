@@ -55,6 +55,20 @@ class GoldenRecordBuilderTest {
     }
 
     @Test
+    void bracesAndLineBreaksDoNotCountAsLength() {
+        Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
+                @article{a, author = {Ann Lee and Bo Chen}, title = {New Directions}, year = 2020}
+                @article{b, author = {Ann Lee and\r
+                             Bo Chen}, title = {{NEW DIRECTIONS}}, year = 2020}
+                """));
+
+        CanonicalEntry entry = builder.build(cluster, new HashSet<>());
+
+        assertEquals("Ann Lee and Bo Chen", entry.fields().get("author"));
+        assertEquals("New Directions", entry.fields().get("title"));
+    }
+
+    @Test
     void singletonKeepsItsFields() {
         Cluster cluster = new Cluster(TestRecords.parse("t.bib",
                 "@book{k, author = {Ann Lee}, title = {Graphs}, year = 2020, publisher = {P}}"));
