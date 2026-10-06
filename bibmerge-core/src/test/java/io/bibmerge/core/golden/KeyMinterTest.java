@@ -5,13 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import io.bibmerge.core.TestRecords;
 import io.bibmerge.core.model.NormalizedRecord;
 
-@Disabled("TODO(vamshi): remove once KeyMinter is implemented")
 class KeyMinterTest {
 
     private static NormalizedRecord record(String bib) {
@@ -32,6 +30,17 @@ class KeyMinterTest {
         Set<String> taken = new HashSet<>(Set.of("lee2020graphs", "lee2020graphsa"));
 
         assertEquals("lee2020graphsb", new KeyMinter().mint(r, taken));
+    }
+
+    @Test
+    void suffixesContinuePastZ() {
+        NormalizedRecord r = record("@article{x, author = {Ann Lee}, title = {Graphs}, year = 2020}");
+        Set<String> taken = new HashSet<>(Set.of("lee2020graphs"));
+        for (char c = 'a'; c <= 'z'; c++) {
+            taken.add("lee2020graphs" + c);
+        }
+
+        assertEquals("lee2020graphsaa", new KeyMinter().mint(r, taken));
     }
 
     @Test
