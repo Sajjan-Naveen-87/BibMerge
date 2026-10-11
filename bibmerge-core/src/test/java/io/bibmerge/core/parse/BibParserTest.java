@@ -122,4 +122,29 @@ class BibParserTest {
 
         assertEquals("k", parser.parse("bom.bib", withBom).records().get(0).key());
     }
+
+    @Test
+    void atSignAtLineStartInsideAFieldDoesNotSplitTheEntry() {
+        ParseResult result = parser.parse("a.bib", """
+                @article{a1, title = {Handles},
+                  abstract = {Users write
+                @handles in posts},
+                  author = {Ann Lee}, year = 2020}
+                @article{a2, title = {Other}, year = 2021}
+                """);
+
+        assertEquals(List.of("a1", "a2"), result.records().stream().map(SourceRecord::key).toList());
+        assertTrue(result.records().get(0).field("abstract").orElseThrow().contains("@handles"));
+        assertTrue(result.diagnostics().isEmpty(), result.diagnostics()::toString);
+    }
+
+    @Test
+    void parenthesisDelimitedEntriesStillSplit() {
+        ParseResult result = parser.parse("a.bib", """
+                @article(p1, title = {One})
+                @article(p2, title = {Two})
+                """);
+
+        assertEquals(2, result.records().size());
+    }
 }

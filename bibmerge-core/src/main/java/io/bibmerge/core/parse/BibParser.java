@@ -43,8 +43,15 @@ import io.bibmerge.core.model.SourceRecord;
  */
 public final class BibParser {
 
-    /** A chunk starts at a line whose first non-blank character is {@code @}. */
-    private static final Pattern CHUNK_START = Pattern.compile("(?m)^[ \\t]*@");
+    /**
+     * A chunk starts at a line that opens an entry: {@code @type{} or {@code @type(}.
+     * A bare {@code @} at the start of a line inside a field (an abstract mentioning
+     * {@code @handles}) is not an entry and must not split one.
+     */
+    private static final Pattern CHUNK_START = Pattern.compile(
+            "(?m)^[ \\t]*@[a-zA-Z]+[ \\t]*[{(]");
+
+    private static final Pattern PAREN_OPEN = Pattern.compile("^[ \\t]*@[a-zA-Z]+[ \\t]*\\(");
 
     private static final Pattern LINE_IN_MESSAGE = Pattern.compile("line (\\d+)");
 
@@ -75,7 +82,7 @@ public final class BibParser {
 
             BibTeXDatabase database;
             try {
-                database = parser.parseFully(new StringReader(chunk.text()));
+                database = parser.parseFully(new StringReader(braceDelimited(chunk.text())));
             } catch (RuntimeException e) {
                 diagnostics.add(new ParseDiagnostic(sourceFile, chunk.line(), Severity.ERROR,
                         "Skipped malformed entry: " + firstLine(e)));
@@ -172,6 +179,20 @@ public final class BibParser {
             chunks.add(new Chunk(text.substring(start, end), line));
         }
         return chunks;
+    }
+
+    /**
+     * {@code @type( ... )} is valid BibTeX but JBibTeX only accepts {@code @type{ ... }}.
+     * A chunk holds exactly one entry, so its outer parentheses can be swapped for braces.
+     */
+    static String braceDelimited(String chunk) {
+        Matcher open = PAREN_OPEN.matcher(chunk);
+        int close = chunk.lastIndexOf(')');
+        if (!open.find() || close < open.end()) {
+            return chunk;
+        }
+        return chunk.substring(0, open.end() - 1) + "{"
+                + chunk.substring(open.end(), close) + "}" + chunk.substring(close + 1);
     }
 
     private static int countNewlines(String text, int from, int to) {
