@@ -1,6 +1,11 @@
 spring:
   application:
     name: bibmerge
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
 
 server:
-  port: 8080
+  # 8080 is often taken by other local services; override with --server.port=...
+  port: 8091
