@@ -41,10 +41,10 @@ s += [P("BibMerge — Principles &amp; Practices", h1),
 
 s += [P("1. Prompt engineering", h2),
       P("Our prompts improved most when we stopped asking for features and started giving the model the same inputs a teammate would get. "
-        "Five principles, each learned from a prompt that failed first:"),
+        "Five principles we arrived at during the project (originals vs refined prompts in the Appendix):"),
       *B(["<b>Context before task.</b> Point the model at the design-doc section, the existing interfaces and the current repository state "
           "before asking for code (P1, P2). A handoff document said the design doc existed; the repository audit showed it had never been pushed.",
-          "<b>One unit of work per prompt.</b> One pipeline stage or one bug per prompt, one commit per answer. Large prompts produced code we could not review.",
+          "<b>One unit of work per prompt.</b> One pipeline stage or one bug per prompt, one commit per answer, so every answer can be reviewed and reverted on its own.",
           "<b>Constraints and non-goals stated explicitly.</b> Language, package, interfaces that must not change, and what not to touch: "
           "\"do not write Vamshi's modules\" (P3) kept ownership honest.",
           "<b>Executable acceptance criteria.</b> Every prompt names the tests that must pass and the command to run; we ask for test counts back, not \"done\".",
@@ -68,7 +68,7 @@ s += [P("2. Debugging", h2),
 
 s += [P("3. Version control (Git) for code and prompts", h2),
       *B(["<b>Branch per unit, PR per branch, CI on every PR.</b> GitHub Actions runs <font face='Courier'>mvn verify</font> and the frontend lint/build; "
-          "PRs merge only on green, with merge commits so each member's history stays visible (<font face='Courier'>git shortlog</font>: 18 / 8).",
+          "we merge on green, with merge commits so each member's history stays visible (<font face='Courier'>git shortlog</font>: 18 / 8).",
           "<b>One commit per stage with a why-message</b> (e.g. \"Resolve crossref inheritance (Stage 1.5)\" explains the DBLP case it fixes). "
           "AI-written commits carry a <font face='Courier'>Co-Authored-By</font> trailer, so AI involvement is auditable in <font face='Courier'>git log</font>.",
           "<b>Prompts are versioned like code.</b> <font face='Courier'>doc/prompts/README.md</font> logs each significant prompt with the commit or PR it produced; "
@@ -85,26 +85,47 @@ s += [P("4. Testing, refactoring and documentation", h2),
              ["Spec tests as contracts", "Interfaces shipped with disabled tests stating exact behaviour; enabling them was the definition of done."],
              ["Architecture enforced", "Maven enforcer bans Spring from the engine module (ADR-1), so logic cannot leak into controllers."],
              ["Refactoring with a safety net", "Replaced the library LaTeX printer, reordered DOI normalization, added decision-ladder rules — each only with the full suite green before and after."],
-             ["Documentation", "Design doc (architecture, ADRs, test plan) in repo; Javadoc on every public type stating <i>why</i>; README with build/run; task specs; synthetic-corpus README; PR descriptions list deviations and known gaps."]],
+             ["Documentation", "Design doc (architecture, ADRs, test plan) in repo; Javadoc on the engine and API types stating <i>why</i>; README with build/run; task specs; synthetic-corpus README; PR descriptions list deviations and known gaps."]],
             [3.6 * cm, W - 3.6 * cm]),
       P("<b>Known gaps</b> (stated, not hidden): blocking is all-pairs (fine for a few papers, not for 10k records); venue abbreviation dictionary and review UI "
         "not built; BibTeX/biber compile check not yet automated in CI.")]
 
+orig = ParagraphStyle("o", parent=cell, fontName="Helvetica-Oblique", textColor=colors.HexColor("#374151"))
+refd = ParagraphStyle("r", parent=cell, fontName="Courier", fontSize=7.3, leading=8.9)
+def pair_table(rows):
+    data = [[P("Our original prompt (verbatim)", cellb), P("Refined with the template (what we write now)", cellb), P("Led to", cellb)]]
+    for o, r, led in rows:
+        data.append([P(o, orig), P(r, refd), P(led, cell)])
+    t = Table(data, colWidths=[4.3 * cm, W - 6.6 * cm, 2.3 * cm], repeatRows=1)
+    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8eef6")),
+        ("BACKGROUND", (1, 1), (1, -1), colors.HexColor("#f3f6fa")),
+        ("GRID", (0, 0), (-1, -1), 0.4, RULE), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3.5), ("RIGHTPADDING", (0, 0), (-1, -1), 3.5)]))
+    return t
+
 s += [P("Appendix — sample prompts (full log: doc/prompts/README.md)", h2),
-      P("<b>A. Implement one stage under design constraints</b> → PR #2"),
-      P("Implement my modules from design doc §6.6 (stages 1–6) on a branch, one commit per stage. Use the package layout of §6.2 and the "
-        "domain model of §5. Every stage needs unit tests before it is called done. Run the full build after each commit and show me the test "
-        "count. Do not touch Vamshi's modules (stages 7–9).", mono),
-      P("<b>B. Spec-first hand-off</b> → PR #3, then the partner's 8 commits"),
-      P("Do not write Vamshi's modules. Write interfaces that throw TODO(vamshi), one @Disabled test per class that states the exact expected "
-        "behaviour, and a task file listing the classes in dependency order. The build must stay green.", mono),
-      P("<b>C. Verify against real data</b> → commit be07587"),
-      P("Get the stakeholder's real papers (public metadata only, stored in the git-ignored corpus.local/), run `match` on them, and explain "
-        "every MERGE or REVIEW decision.", mono),
-      P("<b>D. Structured bug hunt</b> → commits d6b9b9b, 929678a (PR #4)"),
-      P("Pull main. Build the integrated branch in a separate worktree. Probe: keys colliding across entries, quotes in preambles, a line "
-        "starting with @ inside a field, the real ePrint file. For each failure: reproduce, write a failing regression test, fix, rerun the suite.", mono),
-      P("<b>E. Template</b>"),
+      P("Left: prompts exactly as we first typed them (typos included). Right: the same request rewritten with our template; every added "
+        "line is a constraint or check we had to supply later in the conversation, which is the lesson. We now write the right-hand form up front."),
+      pair_table([
+        ("now make the changes in the code base to do some of the left behind commits and reschedule the uncomiplited commits",
+         "Context: design doc §6.6, §6.2, §5; branch from main.<br/>Task: my modules, stages 1–6.<br/>"
+         "Constraints: one commit per stage; do not touch stages 7–9 (Vamshi's).<br/>"
+         "Acceptance: unit tests per stage; full build green after each commit.<br/>Report: test count per commit.",
+         "PR #2"),
+        ("do thw wors need to be done today",
+         "Context: Vamshi owns stages 7–9 and has no commits yet.<br/>Task: starter for his modules.<br/>"
+         "Constraints: do NOT implement them; stubs that throw TODO(vamshi); one @Disabled spec test per class; "
+         "task file in dependency order.<br/>Acceptance: build stays green.",
+         "PR #3; partner's 8 commits"),
+        ("now pull form main and fix the bugs if any",
+         "Context: main + vamshi/stages-7-9, never integrated.<br/>Task: integrate, then hunt bugs at module boundaries.<br/>"
+         "Constraints: separate worktree; probe colliding keys, quotes in preambles, @ at line start, real ePrint file.<br/>"
+         "Acceptance: failing regression test first, then fix, then full suite.",
+         "PR #4 (2 fixes)"),
+      ]),
+      Spacer(1, 4),
+      P("<b>Template</b>"),
       P("Context: &lt;design-doc section / files / current state to read first&gt;<br/>Task: &lt;one module or one bug&gt;<br/>"
         "Constraints: &lt;language, package, interfaces that must not change, what not to touch&gt;<br/>"
         "Acceptance: &lt;tests that must pass, command, expected output&gt;<br/>Report: &lt;diff summary, test counts, open questions&gt;", mono)]
