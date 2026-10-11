@@ -1,8 +1,11 @@
 package io.bibmerge.core.pipeline;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import io.bibmerge.core.cluster.ClusterResolver;
@@ -44,15 +47,43 @@ public final class MergePipeline {
                 new GoldenRecordBuilder(new KeyMinter()), new BibWriter(), dialect);
     }
 
+    /** Source keys of a cluster, lower-cased: BibTeX treats keys case-insensitively. */
+    private static Set<String> sourceKeys(Cluster cluster) {
+        Set<String> keys = new HashSet<>();
+        for (NormalizedRecord member : cluster.members()) {
+            keys.add(member.source().key().toLowerCase(Locale.ROOT));
+        }
+        return keys;
+    }
+
     public MergeResult run(List<ParseResult> inputs) {
         List<NormalizedRecord> records = RecordNormalizer.normalizeAll(
                 inputs.stream().flatMap(input -> input.records().stream()).toList());
         Matcher.Result matched = matcher.match(records);
 
-        Set<String> taken = new HashSet<>();
+        List<Cluster> resolved = clusters.resolve(records, matched.merges());
+        Map<String, Integer> sourceKeyUses = new HashMap<>();
+        for (Cluster cluster : resolved) {
+            for (String key : sourceKeys(cluster)) {
+                sourceKeyUses.merge(key, 1, Integer::sum);
+            }
+        }
+
+        Set<String> issued = new HashSet<>();
         List<CanonicalEntry> entries = new ArrayList<>();
-        for (Cluster cluster : clusters.resolve(records, matched.merges())) {
-            entries.add(golden.build(cluster, taken));
+        for (Cluster cluster : resolved) {
+            // A minted key must not be another entry's old key: that old key becomes an
+            // ids alias there, and \cite{oldkey} would silently resolve to the wrong work.
+            Set<String> own = sourceKeys(cluster);
+            Set<String> blocked = new HashSet<>(issued);
+            sourceKeyUses.forEach((key, uses) -> {
+                if (!own.contains(key) || uses > 1) {
+                    blocked.add(key);
+                }
+            });
+            CanonicalEntry entry = golden.build(cluster, blocked);
+            issued.add(entry.key());
+            entries.add(entry);
         }
 
         List<String> preambles = inputs.stream()

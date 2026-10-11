@@ -37,4 +37,36 @@ class MergePipelineTest {
         assertTrue(reparsed.diagnostics().isEmpty());
         assertTrue(result.bib().contains("ids = {"));
     }
+
+    /** Google Scholar-style source keys use the same shape as minted keys. */
+    @Test
+    void mintedKeyNeverReusesAnotherEntrysOldKey() {
+        ParseResult input = new BibParser().parse("t.bib", """
+                @article{lee2020graphs, author = {Bo Chen}, title = {Trees},
+                  journal = {J. Trees}, year = 2019}
+                @article{x1, author = {Ann Lee}, title = {Graphs of Things},
+                  journal = {J. Graphs}, year = 2020}
+                """);
+
+        MergeResult result = MergePipeline.withDefaults(Dialect.BIBLATEX).run(List.of(input));
+
+        java.util.Map<String, String> keyByTitle = new java.util.HashMap<>();
+        result.entries().forEach(e -> keyByTitle.put(e.fields().get("title"), e.key()));
+        assertEquals("lee2020graphsa", keyByTitle.get("Graphs of Things"));
+        assertEquals(List.of("lee2020graphs"), result.entries().stream()
+                .filter(e -> e.fields().get("title").equals("Trees")).findFirst().orElseThrow()
+                .retiredKeys());
+    }
+
+    @Test
+    void entryKeepsItsOwnKeyWhenItIsAlsoTheMintedOne() {
+        ParseResult input = new BibParser().parse("t.bib", """
+                @article{lee2020graphs, author = {Ann Lee}, title = {Graphs}, year = 2020}
+                """);
+
+        MergeResult result = MergePipeline.withDefaults(Dialect.BIBLATEX).run(List.of(input));
+
+        assertEquals("lee2020graphs", result.entries().get(0).key());
+        assertTrue(result.entries().get(0).retiredKeys().isEmpty());
+    }
 }
