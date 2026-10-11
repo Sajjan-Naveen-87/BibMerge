@@ -1,11 +1,97 @@
 main {
-  max-width: 40rem;
-  margin: 4rem auto;
+  max-width: 64rem;
+  margin: 2.5rem auto;
   padding: 0 1rem;
   text-align: left;
 }
 
-.status {
-  font-family: ui-monospace, monospace;
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.25rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 1.75rem 0 0.25rem;
+}
+
+.lede,
+.note {
   opacity: 0.8;
+}
+
+.note {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid #8884;
+  border-radius: 10px;
+}
+
+.summary strong {
+  font-size: 1.5rem;
+  margin-right: 0.3rem;
+}
+
+.summary button {
+  margin-left: auto;
+}
+
+.count {
+  font-size: 0.85rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: #8883;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #8883;
+  word-break: break-word;
+}
+
+td.num {
+  font-variant-numeric: tabular-nums;
+}
+
+pre {
+  max-height: 24rem;
+  overflow: auto;
+  padding: 0.9rem;
+  border-radius: 8px;
+  background: #8881;
+  font-size: 0.82rem;
+}
+
+.diagnostics {
+  font-size: 0.85rem;
+  padding-left: 1.2rem;
+}
+
+.error {
+  color: #c0392b;
+  font-weight: 600;
 }

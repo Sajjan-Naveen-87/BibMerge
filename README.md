@@ -90,11 +90,15 @@ acknowledgement is attached as Appendix A of the proposal
 ├── bibmerge-core/           # Merge engine -- plain Java 21, no Spring
 ├── bibmerge-api/            # Spring Boot REST API + CLI (builds bibmerge.jar)
 ├── bibmerge-web/            # React + TypeScript front end (Vite)
+├── demo/                    # sample input for a live demo
 ├── design/design.md         # Design document (v2, 11 Sep 2026)
 ├── doc/
 │   ├── proposal.tex          # Project proposal (LaTeX source)
 │   ├── stakeholder-email.pdf # Stakeholder acknowledgement (Appendix A)
 │   ├── Proj-Approval.pdf     # Project approval
+│   ├── mid-eval/             # principles document, architecture, demo notes
+│   ├── prompts/              # version-controlled prompt log
+│   ├── tasks/                # module task specs
 │   └── proposal-template.pdf # Course-provided template
 └── .github/workflows/ci.yml # CI: backend verify + frontend lint/build
 ```
@@ -107,23 +111,28 @@ and never committed (design doc ADR-14).
 Requirements: JDK 21+ and Node 22+.
 
 ```bash
-./mvnw verify                             # build + run all backend tests
-java -jar bibmerge-api/target/bibmerge.jar --help
-java -jar bibmerge-api/target/bibmerge.jar  # serves http://localhost:8080
+./mvnw -Pweb package                        # build everything, UI included
+java -jar bibmerge-api/target/bibmerge.jar  # web app on http://localhost:8091
 ```
 
-If port 8080 is taken, add `--server.port=8091`.
+Upload `.bib` files, review the merges, download `merged.bib`. Use
+`--server.port=...` for another port. Without `-Pweb` the JAR has the API and CLI
+but no UI (that is what CI builds).
 
-Front end in development (proxies `/api` to the backend):
+Command line, no server needed:
 
 ```bash
-cd bibmerge-web
-npm install
-npm run dev                               # http://localhost:5173
+java -jar bibmerge-api/target/bibmerge.jar match demo/paper-a.bib demo/paper-b.bib
+java -jar bibmerge-api/target/bibmerge.jar merge demo/*.bib -o merged.bib
 ```
 
-Point it at a different backend port with
-`BIBMERGE_API=http://localhost:8091 npm run dev`.
+Front-end development with hot reload (proxies `/api` to the backend on 8091):
+
+```bash
+cd bibmerge-web && npm install && npm run dev   # http://localhost:5173
+```
+
+Tests: `./mvnw verify`.
 
 ## Building the proposal PDF
 
