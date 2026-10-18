@@ -19,9 +19,16 @@ public final class TitleNormalizer {
     public record Result(String full, String key, boolean extendedAbstract) {
     }
 
+    private static final String MARKER_PHRASES =
+            "extended abstract|full version|preliminary version|short paper|extended version";
+    /**
+     * A trailing marker, matched before punctuation is stripped. A bare "abstract"
+     * counts only in brackets: "Proofs (Abstract)" is marked, "Reasoning in the
+     * Abstract" is a title that ends in a word.
+     */
     private static final Pattern MARKER = Pattern.compile(
-            "\\s+(?:extended abstract|full version|preliminary version|short paper"
-                    + "|extended version|abstract)$");
+            "[\\s,.:;-]*(?:[(\\[]\\s*(?:" + MARKER_PHRASES + "|abstract)\\s*[)\\]]"
+                    + "|\\b(?:" + MARKER_PHRASES + "))[\\s.]*$");
 
     private static final Set<String> STOPWORDS = Set.of(
             "a", "an", "the", "of", "for", "and", "in", "on", "to", "with", "by", "from",
@@ -34,13 +41,14 @@ public final class TitleNormalizer {
         if (raw == null || raw.isBlank()) {
             return new Result("", "", false);
         }
-        String full = Text.simplify(Text.decode(raw));
+        String folded = Text.fold(Text.decode(raw)).strip();
         boolean marker = false;
-        Matcher matcher = MARKER.matcher(full);
+        Matcher matcher = MARKER.matcher(folded);
         if (matcher.find()) {
-            full = full.substring(0, matcher.start()).strip();
+            folded = folded.substring(0, matcher.start());
             marker = true;
         }
+        String full = Text.simplify(folded);
         String key = Arrays.stream(full.split(" "))
                 .filter(token -> !STOPWORDS.contains(token))
                 .collect(Collectors.joining(" "));

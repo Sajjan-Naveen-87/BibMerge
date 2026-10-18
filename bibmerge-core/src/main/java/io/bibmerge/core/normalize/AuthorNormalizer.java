@@ -18,7 +18,7 @@ import io.bibmerge.core.model.PersonName;
  */
 public final class AuthorNormalizer {
 
-    private static final Pattern ET_AL = Pattern.compile("\\s*,?\\s*et\\s*al\\.?\\s*$",
+    private static final Pattern ET_AL = Pattern.compile("\\s*,?\\s*\\bet\\s*al\\.?\\s*$",
             Pattern.CASE_INSENSITIVE);
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");

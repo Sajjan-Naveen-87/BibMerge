@@ -30,7 +30,9 @@ import io.bibmerge.core.normalize.RecordNormalizer;
  *       over two lines does not beat the same text written plainly;</li>
  *   <li>ties go to the earliest member.</li>
  * </ol>
- * Fields present in only one member are carried over; {@code crossref} is dropped
+ * Fields present in only one member are carried over, except that in a mixed cluster a
+ * preprint's {@code journal} or {@code booktitle} ("arXiv preprint ...") is never used:
+ * it names the preprint server, not the published venue. {@code crossref} is dropped
  * because inheritance is already applied. A chosen {@code doi} is written in its
  * normalized form, so a URL-style value never yields {@code https://doi.org/https://...}.
  *
@@ -42,6 +44,8 @@ import io.bibmerge.core.normalize.RecordNormalizer;
 public final class GoldenRecordBuilder {
 
     private static final Pattern BRACES = Pattern.compile("[{}]");
+    /** Venue fields taken only from the version of record in a mixed cluster. */
+    private static final Set<String> VENUE_FIELDS = Set.of("journal", "booktitle");
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
@@ -86,6 +90,10 @@ public final class GoldenRecordBuilder {
         for (String name : names) {
             NormalizedRecord winner = null;
             for (NormalizedRecord member : members) {
+                if (mixed && VENUE_FIELDS.contains(name)
+                        && member.versionRole() == VersionRole.PREPRINT) {
+                    continue;
+                }
                 // Strictly better only, so ties keep the earlier member.
                 if (member.source().field(name).isPresent()
                         && (winner == null || beats(member, winner, name, mixed))) {

@@ -74,6 +74,24 @@ class GoldenRecordBuilderTest {
     }
 
     @Test
+    void preprintVenueDoesNotLeakIntoThePublishedEntry() {
+        Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
+                @article{v, author = {Vaswani, Ashish and others}, title = {Attention is all you need},
+                  journal = {arXiv preprint arXiv:1706.03762}, year = 2017}
+                @inproceedings{n, author = {Ashish Vaswani and Noam Shazeer},
+                  title = {Attention is All you Need}, booktitle = {NeurIPS 30}, year = 2017,
+                  eprint = {1706.03762}, archivePrefix = {arXiv}}
+                """));
+
+        CanonicalEntry entry = builder.build(cluster, new HashSet<>());
+
+        assertEquals("inproceedings", entry.entryType());
+        assertEquals("NeurIPS 30", entry.fields().get("booktitle"));
+        assertFalse(entry.fields().containsKey("journal"));
+        assertEquals("1706.03762", entry.fields().get("eprint"));
+    }
+
+    @Test
     void versionOfRecordWinsEvenWhenOnlyThePreprintHasADoi() {
         Cluster cluster = new Cluster(TestRecords.parse("t.bib", """
                 @misc{s, author = {Ann Lee}, title = {Markets}, year = 2019,

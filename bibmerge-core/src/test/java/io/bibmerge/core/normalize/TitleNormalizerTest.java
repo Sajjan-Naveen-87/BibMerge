@@ -40,6 +40,27 @@ class TitleNormalizerTest {
         assertTrue(result.extendedAbstract());
     }
 
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', textBlock = """
+            Proofs [Extended Abstract]          | proofs
+            Proofs (Abstract)                   | proofs
+            Proofs, Full Version.               | proofs
+            """)
+    void otherMarkerFormsBecomeAFlag(String raw, String expected) {
+        TitleNormalizer.Result result = TitleNormalizer.normalize(raw);
+
+        assertEquals(expected, result.full());
+        assertTrue(result.extendedAbstract());
+    }
+
+    @Test
+    void titleEndingInTheWordAbstractKeepsIt() {
+        TitleNormalizer.Result result = TitleNormalizer.normalize("Reasoning in the Abstract");
+
+        assertEquals("reasoning in the abstract", result.full());
+        assertFalse(result.extendedAbstract());
+    }
+
     @Test
     void partNumbersAreKept() {
         assertFalse(TitleNormalizer.normalize("Lattices, Part I").full()

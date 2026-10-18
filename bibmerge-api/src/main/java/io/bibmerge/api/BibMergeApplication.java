@@ -16,7 +16,7 @@ public class BibMergeApplication {
             BibMerge %s -- deduplicate and merge BibTeX references across papers.
 
             Usage:
-              java -jar bibmerge.jar            start the web app on http://localhost:8080
+              java -jar bibmerge.jar            start the web app on http://localhost:8091
               java -jar bibmerge.jar --help     show this message
 
               java -jar bibmerge.jar match <a.bib> <b.bib> ...
