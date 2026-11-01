@@ -9,8 +9,8 @@ Re-run everything with:
 ./mvnw verify
 ```
 
-Last full run: **172 test runs, 0 failures**. Run on branch `fix/edge-cases`, cut
-from `main` at 208234b. CI runs the same suite on every push and pull request
+Last full run: **190 test runs, 0 failures**, with PRs #7–#9 and the review-in-browser
+work combined (local branch `demo/local`). CI runs the same suite on every push and pull request
 (`.github/workflows/ci.yml`).
 
 ## 1. Acceptance criteria from the proposal
@@ -19,7 +19,7 @@ from `main` at 208234b. CI runs the same suite on every push and pull request
 |---|---|---|---|
 | A1 | Merging several papers' `.bib` files gives one file with no duplicates, matching a hand-checked reference merge | `MergePipelineTest.mergesTheSyntheticCorpus`: 12 records in, 8 entries out, matching the hand-written expectation in `bibmerge-core/src/test/resources/corpus/synthetic/README.md`. `SyntheticCorpusTest.findsExactlyTheExpectedMerges` checks the exact pairs | Pass |
 | A2 | Two differently labelled entries for one paper become one entry: DOI first, then fuzzy title/author/year | `SyntheticCorpusTest.mergesHappenForTheRightReason` checks the rule behind each merge: `identifier-agree` (same DOI written two ways; arXiv id), `deterministic-key` (no DOI, DBLP crossref), and `score>=tauHigh` (ePrint vs CRYPTO version) | Pass |
-| A3 | Re-importing an already-merged paper adds zero new entries | `MergePipelineTest.sameFileTwiceGivesTheSameEntriesOnce`: the same file imported twice gives the same entries, with the same keys, and nothing for review | Pass (within one run; see §4) |
+| A3 | Re-importing an already-merged paper adds zero new entries | `MergePipelineTest.sameFileTwiceGivesTheSameEntriesOnce`: the same file imported twice gives the same entries, with the same keys, and nothing for review. `MergePipelineTest.addingAPaperToAnEarlierMergeKeepsKeysAndAliases`: an earlier `merged.bib` plus a new paper keeps every existing key and old alias and adds only the new work | Pass |
 | A4 | The output is a valid `.bib` that compiles under BibTeX/biblatex | `BibWriterTest.roundTripKeepsFieldsAndBraceProtection` and `MergePipelineTest.mergesTheSyntheticCorpus` re-parse the output with no diagnostics. A LaTeX compile is a manual check (§3) | Parse: pass. LaTeX: to run |
 
 ## 2. Corner cases named in the proposal
@@ -37,7 +37,19 @@ from `main` at 208234b. CI runs the same suite on every push and pull request
 | Non-UTF-8 file | `BibParserTest.latin1FileIsReadWithWarning`, `stripsUtf8ByteOrderMark` | Read as Latin-1, with a warning | Pass |
 | Missing input file (CLI) | `CliTest.missingFileIsAnIoError`, `missingFileErrorSaysWhatIsWrong` | Exit code 1, "error: file not found: …" | Pass |
 | Empty upload, unknown dialect (web) | `MergeControllerTest.emptyUploadIsBadRequest`, `unknownDialectIsBadRequest` | HTTP 400 with a reason | Pass |
-| Wrong file uploaded (web) | `MergeControllerTest.wrongFileComesBackWithAWarning` | 0 entries, and the warning shown on the page | Pass (added in this branch) |
+| Wrong file uploaded (web) | `MergeControllerTest.wrongFileComesBackWithAWarning` | 0 entries, and the warning shown on the page | Pass |
+
+## 2b. Reviewer decisions (proposal: "human-confirmation step for borderline matches")
+
+| Case | Test | Expected behaviour | Result |
+|---|---|---|---|
+| "Different" beats a matching DOI | `HumanDecisionTest.keepSeparateBeatsAMatchingDoi` | DISTINCT, rule `human:keep-separate` | Pass |
+| "Same paper" beats a veto (Part I / Part II) | `HumanDecisionTest.mergeBeatsAVeto` | MERGE, rule `human:merge` | Pass |
+| Pair order doesn't matter; a later answer replaces an earlier one | `HumanDecisionTest.decisionIsSymmetricAndKeepSeparateWins`, `laterDecisionReplacesEarlierOne` | As described | Pass |
+| A chain A–B–C when A and C are "different" | `ClusterResolverTest.keepSeparateCutsAChainAtItsBottleneck` | The weakest link is cut and goes back to review | Pass |
+| Decisions change the merged file | `MergePipelineTest.humanDecisionsChangeTheOutput` | Split and forced merge both reflected | Pass |
+| Through the web API | `MergeControllerTest.keepSeparateDecisionSplitsTheMerge`, `pairsCarryTheEvidenceForTheReviewer`, `badDecisionsAreBadRequest` | Split applied; evidence returned; bad input gives 400 | Pass |
+| In the browser | Manual click-through, 1 Nov: 3 demo files, 14 records → 10 entries, 1 for review. "Same paper" → 9 entries; "Not the same" on Diffie–Hellman → 10; Undo → 9 | As described | Pass |
 
 ## 3. Manual checks
 
@@ -72,6 +84,6 @@ library. A handful of papers (hundreds of records) is well inside these limits. 
 design target of 10,000 records in under 10 s (NFR4) needs the planned blockers and
 is **not met** yet.
 
-Incremental import across separate runs (design doc §4.10) needs persistent storage,
-which is not built. Today, "re-import" means running the merge again with all files
-together, as A3 tests.
+Nothing is stored between runs. Adding a paper later works by uploading the earlier
+`merged.bib` with the new file (A3). Reviewer decisions last for one browser session,
+and persistent storage (design doc §4.10) is not built.
