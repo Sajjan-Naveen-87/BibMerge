@@ -45,6 +45,8 @@ public final class GoldenRecordBuilder {
 
     private static final Pattern BRACES = Pattern.compile("[{}]");
     /** Venue fields taken only from the version of record in a mixed cluster. */
+    private static final Set<String> PDF_EXTRA_FIELDS =
+            Set.of("doi", "url", "eprint", "archiveprefix", "year");
     private static final Set<String> VENUE_FIELDS = Set.of("journal", "booktitle");
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
@@ -88,10 +90,16 @@ public final class GoldenRecordBuilder {
         }
         names.remove("crossref");
 
+        boolean anyBib = members.stream().anyMatch(m -> !m.source().fromPdf());
         Map<String, String> chosen = new LinkedHashMap<>();
         for (String name : names) {
             NormalizedRecord winner = null;
             for (NormalizedRecord member : members) {
+                // Next to a .bib record, a PDF adds only identifiers and the year: its other
+                // fields are guesses at where the printed text splits ("howpublished").
+                if (anyBib && member.source().fromPdf() && !PDF_EXTRA_FIELDS.contains(name)) {
+                    continue;
+                }
                 if (mixed && VENUE_FIELDS.contains(name)
                         && member.versionRole() == VersionRole.PREPRINT) {
                     continue;

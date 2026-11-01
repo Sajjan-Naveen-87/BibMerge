@@ -58,6 +58,10 @@ class PdfMergeTest {
 
         assertEquals(1, result.merges().size());
         assertEquals("deterministic-key", result.merges().get(0).rule());
+        // The PDF's guessed "publisher = ACM" is not added next to the .bib record.
+        assertEquals(java.util.Set.of("author", "title", "booktitle", "year", "pages"),
+                result.entries().stream().filter(e -> e.sources().size() == 2).findFirst()
+                        .orElseThrow().fields().keySet());
     }
 
     /** Same paper, title printed slightly differently: a high score alone must not merge it. */

@@ -122,4 +122,12 @@ class PdfReferenceExtractorTest {
 
         assertEquals("C. D. Last title. Venue, 2001.", entries.get(1)[1]);
     }
+
+    @Test
+    void urlsWrappedAcrossLinesAreRejoined() {
+        assertEquals("See https://github.com/core-stack-org and https://www.gbif.org. Accessed",
+                PdfReferenceExtractor.joinLines("See https://\ngithub.com/core-\nstack-org and https://www.gbif.\norg. Accessed"));
+        assertEquals("cryptography at https://x.org. Version 2",
+                PdfReferenceExtractor.joinLines("cryp-\ntography at https://x.org.\nVersion 2"));
+    }
 }

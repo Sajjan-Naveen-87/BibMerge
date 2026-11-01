@@ -39,6 +39,9 @@ public final class PdfReferenceExtractor {
             "(?im)^.*(?:authorized licensed use limited to|restrictions apply\\.?|downloaded on .{0,60} from ieee xplore).*$\\R?|(?m)^\\s*\\d{1,4}\\s*$\\R?");
     /** Trailing lines of a few short tokens, as left by figure labels after the list. */
     private static final Pattern TRAILING_FRAGMENTS = Pattern.compile("(?:\\R[^\\S\\r\\n]*(?:\\p{L}{1,3}[^\\S\\r\\n]*){1,3})+\\s*$");
+    /** A URL broken at a line end after "/" or "-", or after "." when a lower-case part follows. */
+    private static final Pattern URL_WRAP = Pattern.compile(
+            "(https?:\\S*[/-])[^\\S\\r\\n]*\\R\\s*(?=\\S)|(https?:\\S*\\.)[^\\S\\r\\n]*\\R\\s*(?=\\p{Ll})");
     private static final Pattern END_OF_LIST = Pattern.compile(
             "(?im)^\\s*(?:[A-Z]\\.?\\s+)?(appendix|supplementary material)\\b.*$");
 
@@ -151,8 +154,16 @@ public final class PdfReferenceExtractor {
         return entries;
     }
 
-    /** Re-joins words hyphenated at a line break ("cryp-\ntography") and unwraps lines. */
+    /**
+     * Re-joins URLs wrapped after "/", "-" or "." and words hyphenated at a line break
+     * ("cryp-\ntography"), then unwraps lines.
+     */
     static String joinLines(String s) {
+        String joined;
+        do {
+            joined = s;
+            s = URL_WRAP.matcher(s).replaceAll("$1$2");
+        } while (!s.equals(joined));
         return s.replaceAll("(\\p{Ll})-\\s*\\R\\s*(\\p{Ll})", "$1$2")
                 .replaceAll("\\s*\\R\\s*", " ")
                 .strip();
