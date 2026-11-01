@@ -105,6 +105,17 @@ class BibParserTest {
         assertTrue(result.diagnostics().isEmpty());
     }
 
+    /** A wrong file (notes, a .tex, a CSV) must not look like a valid empty bibliography. */
+    @Test
+    void fileWithTextButNoEntriesIsReported() {
+        ParseResult result = parser.parse("notes.bib", "Remember to cite Diffie and Hellman.\n");
+
+        assertTrue(result.records().isEmpty());
+        assertEquals(1, result.diagnostics().size());
+        assertEquals(Severity.WARNING, result.diagnostics().get(0).severity());
+        assertTrue(result.diagnostics().get(0).message().contains("No BibTeX entries"));
+    }
+
     @Test
     void latin1FileIsReadWithWarning() {
         byte[] latin1 = "@article{k, author = {Müller, Hans}}"

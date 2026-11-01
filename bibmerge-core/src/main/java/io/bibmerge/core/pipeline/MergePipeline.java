@@ -56,6 +56,43 @@ public final class MergePipeline {
         return keys;
     }
 
+    /**
+     * Drops retired keys that other entries also retire. When two papers use one key for
+     * different works, an ids alias on both would make \cite{key} resolve to one of them
+     * silently; with no alias the citation fails loudly and the user fixes it.
+     */
+    private static CanonicalEntry withoutAmbiguousAliases(CanonicalEntry entry,
+            Map<String, Integer> sourceKeyUses) {
+        List<String> kept = entry.retiredKeys().stream()
+                .filter(key -> sourceKeyUses.getOrDefault(key.toLowerCase(Locale.ROOT), 0) <= 1)
+                .toList();
+        if (kept.size() == entry.retiredKeys().size()) {
+            return entry;
+        }
+        return new CanonicalEntry(entry.key(), entry.entryType(), entry.fields(),
+                entry.sources(), kept);
+    }
+
+    /** One warning per record whose key names a different work elsewhere. */
+    private static List<ParseDiagnostic> ambiguousKeyWarnings(List<Cluster> clusters,
+            Map<String, Integer> sourceKeyUses) {
+        List<ParseDiagnostic> warnings = new ArrayList<>();
+        for (Cluster cluster : clusters) {
+            Set<String> warned = new HashSet<>();
+            for (NormalizedRecord member : cluster.members()) {
+                String key = member.source().key().toLowerCase(Locale.ROOT);
+                if (sourceKeyUses.getOrDefault(key, 0) > 1 && warned.add(key)) {
+                    warnings.add(new ParseDiagnostic(member.source().sourceFile(),
+                            member.source().line(), ParseDiagnostic.Severity.WARNING,
+                            "Citation key '" + key + "' names different works in different"
+                                    + " files; it is not kept as an alias, so update"
+                                    + " \\cite{" + member.source().key() + "} by hand"));
+                }
+            }
+        }
+        return warnings;
+    }
+
     public MergeResult run(List<ParseResult> inputs) {
         List<NormalizedRecord> records = RecordNormalizer.normalizeAll(
                 inputs.stream().flatMap(input -> input.records().stream()).toList());
@@ -83,13 +120,14 @@ public final class MergePipeline {
             });
             CanonicalEntry entry = golden.build(cluster, blocked);
             issued.add(entry.key());
-            entries.add(entry);
+            entries.add(withoutAmbiguousAliases(entry, sourceKeyUses));
         }
 
         List<String> preambles = inputs.stream()
                 .flatMap(input -> input.preambles().stream()).distinct().toList();
-        List<ParseDiagnostic> diagnostics = inputs.stream()
-                .flatMap(input -> input.diagnostics().stream()).toList();
+        List<ParseDiagnostic> diagnostics = new ArrayList<>(inputs.stream()
+                .flatMap(input -> input.diagnostics().stream()).toList());
+        diagnostics.addAll(ambiguousKeyWarnings(resolved, sourceKeyUses));
 
         return new MergeResult(writer.write(entries, preambles, dialect), entries,
                 matched.merges(), matched.reviews(), diagnostics, records.size(),

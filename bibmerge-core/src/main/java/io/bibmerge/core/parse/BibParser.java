@@ -76,7 +76,12 @@ public final class BibParser {
         List<String> preambles = new ArrayList<>();
         Set<String> seenKeys = new HashSet<>();
 
-        for (Chunk chunk : chunks(text)) {
+        List<Chunk> chunks = chunks(text);
+        if (chunks.isEmpty() && !text.isBlank()) {
+            diagnostics.add(new ParseDiagnostic(sourceFile, 0, Severity.WARNING,
+                    "No BibTeX entries found; is this a .bib file?"));
+        }
+        for (Chunk chunk : chunks) {
             LenientParser parser = LenientParser.create();
             macros.forEach(parser::addMacro);
 
