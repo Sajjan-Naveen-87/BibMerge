@@ -10,3 +10,7 @@ spring:
 server:
   # 8080 is often taken by other local services; override with --server.port=...
   port: 8091
+
+logging:
+  level:
+    org.apache.pdfbox: ERROR
