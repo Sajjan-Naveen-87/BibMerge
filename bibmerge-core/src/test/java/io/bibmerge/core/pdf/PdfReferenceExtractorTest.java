@@ -79,6 +79,24 @@ class PdfReferenceExtractorTest {
                 result.records().get(1).field("howpublished").orElseThrow());
     }
 
+    /** IEEE Xplore stamps a licence footer on every page; it must not end up in a reference. */
+    @Test
+    void pageFootersAreRemovedFromReferences() throws IOException {
+        byte[] bytes = pdf(List.of(
+                "6. REFERENCES",
+                "[1] A. Author, \"First paper title,\" Some Journal, vol. 1,",
+                "3969",
+                "Authorized licensed use limited to: SOME UNIVERSITY. Downloaded on May 1,2026 at 10:00:00 UTC from IEEE Xplore. Restrictions apply.",
+                "pp. 1-10, 2017.",
+                "[2] B. Author, \"Second paper title,\" Other Journal, 2018."));
+
+        ParseResult result = extractor.parse("ieee.pdf", bytes);
+
+        assertEquals(2, result.records().size());
+        assertEquals("2017", result.records().get(0).field("year").orElseThrow());
+        assertTrue(result.records().get(0).field("journal").orElseThrow().startsWith("Some Journal"));
+    }
+
     @Test
     void pdfWithoutAReferenceListIsReported() throws IOException {
         ParseResult result = extractor.parse("notes.pdf", pdf(List.of("Just some notes.")));

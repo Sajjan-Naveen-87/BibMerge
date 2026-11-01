@@ -34,6 +34,9 @@ public final class PdfReferenceExtractor {
             "(?im)^\\s*(?:\\d+\\.?\\s*)?(references|bibliography|works cited|literature cited)\\s*$");
     private static final Pattern BRACKET_LABEL = Pattern.compile("(?m)^\\s*\\[([^\\]\\s]{1,20})\\]\\s+");
     private static final Pattern NUMBER_LABEL = Pattern.compile("(?m)^\\s*(\\d{1,3})\\.\\s+");
+    /** Page furniture that lands inside the list: licence stamps and bare page numbers. */
+    private static final Pattern PAGE_FURNITURE = Pattern.compile(
+            "(?im)^.*(?:authorized licensed use limited to|restrictions apply\\.?|downloaded on .{0,60} from ieee xplore).*$\\R?|(?m)^\\s*\\d{1,4}\\s*$\\R?");
     private static final Pattern END_OF_LIST = Pattern.compile(
             "(?im)^\\s*(?:[A-Z]\\.?\\s+)?(appendix|supplementary material)\\b.*$");
 
@@ -42,7 +45,9 @@ public final class PdfReferenceExtractor {
         String text;
         try (PDDocument doc = Loader.loadPDF(content)) {
             PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setSortByPosition(true);
+            // Content order, not position order: sorting by position interleaves the two
+            // columns of a two-column paper line by line.
+            stripper.setSortByPosition(false);
             text = stripper.getText(doc);
         } catch (IOException | RuntimeException e) {
             diagnostics.add(new ParseDiagnostic(fileName, 0, Severity.ERROR,
@@ -96,7 +101,7 @@ public final class PdfReferenceExtractor {
         if (start < 0) {
             return null;
         }
-        String section = text.substring(start);
+        String section = PAGE_FURNITURE.matcher(text.substring(start)).replaceAll("");
         Matcher end = END_OF_LIST.matcher(section);
         if (end.find()) {
             section = section.substring(0, end.start());

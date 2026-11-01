@@ -1,6 +1,7 @@
 package io.bibmerge.core.pdf;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -17,6 +18,7 @@ import java.util.regex.Pattern;
  *   <li>IEEE: {@code A. Author and B. Author, "Title," Venue, vol., pp., year.}</li>
  *   <li>Springer LNCS: {@code Author, A., Author, B.: Title. In: Venue, pp. (year)}</li>
  *   <li>plain / ACM / alpha: {@code A. Author and B. Author. Title. In Venue, pages, year.}</li>
+ *   <li>Chinese GB/T 7714: {@code Family A, Family B C. Title[J]. Journal, year, vol(no): pages.}</li>
  * </ul>
  * This is a best-effort reading of printed text, not a parser of a format. The engine treats
  * records from a PDF with less trust than records from a {@code .bib} file.
@@ -40,6 +42,11 @@ final class ReferenceParser {
     /** {@code Bellare, M., Rogaway, P.:} -- comma-separated "Family, I." before a colon. */
     private static final Pattern LNCS_AUTHORS = Pattern.compile(
             "^((?:[^,:.]+,\\s*(?:[A-Z][a-z]?\\.\\s?-?)+,?\\s*(?:and\\s+)?)+(?:et al\\.)?)\\s*:\\s+");
+    /** GB/T 7714 document-type marker after the title: [J] journal, [C] conference, ... */
+    private static final Pattern GB_MARKER = Pattern.compile("\\[(J|C|M|D|R|S|P|N|A|Z|EB/OL|J/OL|C/OL)\\]");
+    /** "Durden S L": a family name followed by one to three capital initials without dots. */
+    private static final Pattern GB_NAME = Pattern.compile(
+            "^(\\p{Lu}[\\p{L}'-]+(?:\\s\\p{Lu}[\\p{L}'-]+)*)\\s((?:\\p{Lu}\\s?){1,3})$");
     private static final Pattern INITIALS = Pattern.compile("^(?:[A-Z][a-z]?\\.\\s?-?)+$");
     private static final Pattern PROCEEDINGS = Pattern.compile(
             "(?i)^(?:in:?\\s|proc\\.|proceedings)|conference|symposium|workshop|crypto|eurocrypt|asiacrypt");
@@ -95,9 +102,24 @@ final class ReferenceParser {
         String authors = null;
         String title = null;
         String venue = null;
+        Matcher gb = GB_MARKER.matcher(text);
         Matcher quoted = QUOTED.matcher(text);
         Matcher lncs = LNCS_AUTHORS.matcher(text);
-        if (quoted.find()) {
+        String gbType = null;
+        int[] gbCut = gb.find() ? gbAuthorEnd(text.substring(0, gb.start())) : null;
+        if (gbCut != null) {
+            authors = gbAuthors(text.substring(0, gbCut[0]));
+            title = text.substring(gbCut[1], gb.start()).strip();
+            venue = text.substring(gb.end()).replaceAll("^[,.\\s]+", "");
+            gbType = switch (gb.group(1)) {
+                case "J", "J/OL" -> "article";
+                case "C", "C/OL", "A" -> "inproceedings";
+                case "M" -> "book";
+                case "D" -> "phdthesis";
+                case "R" -> "techreport";
+                default -> "misc";
+            };
+        } else if (quoted.find()) {
             authors = text.substring(0, quoted.start()).replaceAll("[,\\s]+$", "");
             title = quoted.group(1).strip();
             venue = text.substring(quoted.end()).replaceAll("^[,.\\s]+", "");
@@ -131,7 +153,18 @@ final class ReferenceParser {
         ordered.put("title", title.replaceAll("[.,\\s]+$", ""));
         String type = "misc";
         String place = venueName(venue);
-        if (!preprint && place != null && !place.isBlank()) {
+        if (gbType != null) {
+            type = gbType;
+            if (place != null && !place.isBlank()) {
+                ordered.put(switch (gbType) {
+                    case "article" -> "journal";
+                    case "inproceedings" -> "booktitle";
+                    case "book", "techreport" -> "publisher";
+                    case "phdthesis" -> "school";
+                    default -> "howpublished";
+                }, place);
+            }
+        } else if (!preprint && place != null && !place.isBlank()) {
             if (JOURNAL.matcher(venue).find() && !PROCEEDINGS.matcher(venue).find()) {
                 type = "article";
                 ordered.put("journal", place);
@@ -221,15 +254,56 @@ final class ReferenceParser {
         return String.join(" and ", names);
     }
 
+    private static final Pattern ET_AL_END = Pattern.compile("\\bet al\\.,?\\s+");
+    private static final Pattern DOTTED_INITIAL_START = Pattern.compile("^\\p{Lu}\\.\\s");
+
+    /**
+     * {end of authors, start of title} in a GB reference's text before its [J] marker:
+     * after "et al." if present; for Western dotted initials ("Y. Yamaguchi") at the first
+     * real sentence end; otherwise at the first ". " (GB initials carry no dots).
+     */
+    private static int[] gbAuthorEnd(String prefix) {
+        Matcher etAl = ET_AL_END.matcher(prefix);
+        if (etAl.find()) {
+            return new int[] {etAl.start() + "et al.".length(), etAl.end()};
+        }
+        if (DOTTED_INITIAL_START.matcher(prefix).find()) {
+            List<String> parts = sentences(prefix);
+            if (parts.size() >= 2) {
+                int end = prefix.indexOf(parts.get(1));
+                return new int[] {parts.get(0).length(), end};
+            }
+        }
+        int cut = prefix.indexOf(". ");
+        return cut > 0 ? new int[] {cut, cut + 2} : null;
+    }
+
+    /** "Freeman A, Durden S L, et al" to "Freeman, A., Durden, S. L., et al." for bibtexAuthors. */
+    private static String gbAuthors(String raw) {
+        List<String> out = new ArrayList<>();
+        for (String token : raw.split(",\\s*")) {
+            Matcher m = GB_NAME.matcher(token.strip());
+            if (m.matches()) {
+                out.add(m.group(1) + ", " + String.join(" ",
+                        Arrays.stream(m.group(2).strip().split("\\s+")).map(i -> i + ".").toList()));
+            } else {
+                out.add(token.strip());
+            }
+        }
+        return String.join(", ", out);
+    }
+
     /** The venue name: the venue text up to pages, volume or year. */
     private static String venueName(String venue) {
         if (venue == null) {
             return null;
         }
         String v = venue.replaceAll("^(?i)in:?\\s+", "");
-        v = v.split("(?i),?\\s*(?:pp\\.|pages\\b|vol\\.|no\\.|\\d+\\s*\\(\\d+\\)|\\(\\d{4}\\))", 2)[0];
+        v = v.split("(?i),?\\s*(?:pp\\.|pages\\b|vol\\.|no\\.|\\d+\\s*\\(\\d+\\)|\\(\\d{4}\\))|,\\s*(?:19|20)\\d\\d\\b", 2)[0];
         v = v.replaceAll("[,.]?\\s*(?:19|20)\\d\\d\\.?\\s*$", "");
-        return v.replaceAll("[,.;:\\s]+$", "").strip();
+        v = v.replaceAll("[,;:\\s]+$", "").strip();
+        // Keep the dot of an abbreviation ("Remote Sens."), drop a sentence's full stop.
+        return v.endsWith(".") && !v.matches("(?s).*\\b\\p{L}{1,5}\\.$") ? v.substring(0, v.length() - 1) : v;
     }
 
     private static String trimEnd(String s) {

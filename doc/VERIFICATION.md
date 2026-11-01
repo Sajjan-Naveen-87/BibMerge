@@ -55,13 +55,14 @@ PDF input combined (local branch `demo/local`). CI runs the same suite on every 
 
 | Case | Test | Expected behaviour | Result |
 |---|---|---|---|
-| IEEE, Springer LNCS, plain/ACM, ePrint and arXiv reference strings | `ReferenceParserTest` (9) | Title, authors, venue, year, pages and identifiers read correctly | Pass |
+| IEEE, Springer LNCS, plain/ACM, GB/T 7714, ePrint and arXiv reference strings | `ReferenceParserTest` (13) | Title, authors, venue, year, pages and identifiers read correctly | Pass |
 | `[1]`, `[BR93]` and `1.` labelled lists, lines wrapped and hyphenated | `PdfReferenceExtractorTest` | One record per reference, keys `<file>-<label>` | Pass |
 | PDF with no reference list; corrupt PDF | `PdfReferenceExtractorTest` | Warning or error, never an exception | Pass |
 | PDF reference shares a DOI with a `.bib` entry | `PdfMergeTest.sharedDoiMergesAndBibValuesWin` | Merged; `.bib` values kept; the PDF key is not an alias | Pass |
 | PDF reference matches only by similarity | `PdfMergeTest.fuzzyMatchFromAPdfGoesToReviewNotMerge` | Sent to review (`cap:from-pdf`), not merged | Pass |
 | PDF upload through CLI and web | `CliTest.matchReadsReferencesFromAPdf`, `MergeControllerTest.pdfUploadIsReadAndMerged` | Read and merged | Pass |
 | Real PDFs | Manual, 1 Nov: `demo/paper-a.bib` compiled with LaTeX in `plain`, `alpha` and `ieeetr` styles, each PDF merged with `demo/paper-b.bib` | 18 of 18 references read with correct title, authors and year; in each style the 4 true duplicates were found (3 merged, 1 sent to review), 0 false merges | Pass |
+| Published two-column papers | Manual, 1 Nov: two IEEE papers downloaded from IEEE Xplore (12 and 14 references, IEEE and GB/T 7714 styles), merged with each other | 26 of 26 references read with a title; 25 with correct authors, title and year; licence footers and page numbers removed; 0 false merges | Pass |
 
 ## 3. Manual checks
 
