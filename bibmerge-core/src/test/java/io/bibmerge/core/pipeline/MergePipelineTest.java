@@ -58,6 +58,63 @@ class MergePipelineTest {
                 .retiredKeys());
     }
 
+    /**
+     * Two papers both cite a different work as smith20. An ids alias on both entries
+     * would make \cite{smith20} resolve to one of them silently, so neither gets it and
+     * the user is told.
+     */
+    @Test
+    void sameKeyForDifferentWorksIsNotAnAlias() {
+        ParseResult a = new BibParser().parse("a.bib", """
+                @article{smith20, author = {John Smith}, title = {Graph Colouring Made Easy},
+                  journal = {J. Graphs}, year = 2020}
+                """);
+        ParseResult b = new BibParser().parse("b.bib", """
+                @article{Smith20, author = {Jane Smith}, title = {Quantum Error Correction Codes},
+                  journal = {Phys. Rev.}, year = 2020}
+                """);
+
+        MergeResult result = MergePipeline.withDefaults(Dialect.BIBLATEX).run(List.of(a, b));
+
+        assertEquals(2, result.entries().size());
+        result.entries().forEach(e -> assertTrue(e.retiredKeys().isEmpty(), e.key()));
+        assertTrue(!result.bib().contains("ids = "), result.bib());
+        assertEquals(2, result.diagnostics().stream()
+                .filter(d -> d.message().contains("smith20")).count(), result.diagnostics()::toString);
+    }
+
+    /** Importing the same paper twice adds nothing (design doc §4.10, last row). */
+    @Test
+    void sameFileTwiceGivesTheSameEntriesOnce() {
+        String bib = """
+                @article{dh76, author = {Whitfield Diffie and Martin E. Hellman},
+                  title = {New Directions in Cryptography}, year = 1976,
+                  doi = {10.1109/TIT.1976.1055638}}
+                @inproceedings{BR93, author = {Mihir Bellare and Phillip Rogaway},
+                  title = {Random Oracles are Practical}, booktitle = {CCS}, year = 1993}
+                """;
+        ParseResult first = new BibParser().parse("paper.bib", bib);
+        ParseResult again = new BibParser().parse("paper-copy.bib", bib);
+
+        MergeResult once = MergePipeline.withDefaults(Dialect.BIBLATEX).run(List.of(first));
+        MergeResult twice = MergePipeline.withDefaults(Dialect.BIBLATEX).run(List.of(first, again));
+
+        assertEquals(2, twice.entries().size());
+        assertTrue(twice.reviews().isEmpty());
+        assertEquals(once.entries().stream().map(e -> e.key()).toList(),
+                twice.entries().stream().map(e -> e.key()).toList());
+    }
+
+    @Test
+    void noInputGivesAnEmptyBibliography() {
+        MergeResult result = MergePipeline.withDefaults(Dialect.BIBLATEX)
+                .run(List.of(new BibParser().parse("empty.bib", "")));
+
+        assertEquals(0, result.records());
+        assertTrue(result.entries().isEmpty());
+        assertEquals("", result.bib());
+    }
+
     @Test
     void entryKeepsItsOwnKeyWhenItIsAlsoTheMintedOne() {
         ParseResult input = new BibParser().parse("t.bib", """

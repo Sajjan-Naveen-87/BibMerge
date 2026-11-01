@@ -45,6 +45,21 @@ class MergeControllerTest {
     }
 
     @Test
+    void emptyUploadIsBadRequest() throws Exception {
+        mvc.perform(multipart("/api/merge").file(bib("empty.bib", "")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void wrongFileComesBackWithAWarning() throws Exception {
+        mvc.perform(multipart("/api/merge").file(bib("notes.bib", "Remember to cite DH76.")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries").value(0))
+                .andExpect(jsonPath("$.diagnostics[0]",
+                        Matchers.containsString("No BibTeX entries found")));
+    }
+
+    @Test
     void unknownDialectIsBadRequest() throws Exception {
         mvc.perform(multipart("/api/merge").file(bib("a.bib", "@misc{k, title = {T}}"))
                 .param("dialect", "latex2"))
