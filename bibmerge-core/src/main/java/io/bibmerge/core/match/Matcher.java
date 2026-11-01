@@ -49,16 +49,24 @@ public final class Matcher {
     }
 
     public Result match(List<NormalizedRecord> records) {
+        return match(records, Constraints.NONE);
+    }
+
+    public Result match(List<NormalizedRecord> records, Constraints constraints) {
         List<CandidatePair> candidates = blocker.candidates(records);
         List<PairDecision> decisions = candidates.stream()
-                .map(this::decide)
+                .map(pair -> decide(pair, constraints))
                 .filter(d -> d.decision() != Decision.DISTINCT)
                 .toList();
         return new Result(decisions, candidates.size());
     }
 
     public PairDecision decide(CandidatePair pair) {
+        return decide(pair, Constraints.NONE);
+    }
+
+    public PairDecision decide(CandidatePair pair, Constraints constraints) {
         FeatureVector vector = features.extract(pair.left(), pair.right());
-        return policy.decide(pair, vector, scorer.score(vector));
+        return policy.decide(pair, vector, scorer.score(vector), constraints);
     }
 }

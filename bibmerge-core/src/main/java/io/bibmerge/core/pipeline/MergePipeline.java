@@ -11,10 +11,13 @@ import java.util.Set;
 import io.bibmerge.core.cluster.ClusterResolver;
 import io.bibmerge.core.golden.GoldenRecordBuilder;
 import io.bibmerge.core.golden.KeyMinter;
+import io.bibmerge.core.match.Constraints;
 import io.bibmerge.core.match.Matcher;
 import io.bibmerge.core.model.CanonicalEntry;
 import io.bibmerge.core.model.Cluster;
+import io.bibmerge.core.model.Decision;
 import io.bibmerge.core.model.NormalizedRecord;
+import io.bibmerge.core.model.PairDecision;
 import io.bibmerge.core.model.ParseDiagnostic;
 import io.bibmerge.core.model.ParseResult;
 import io.bibmerge.core.normalize.RecordNormalizer;
@@ -94,11 +97,28 @@ public final class MergePipeline {
     }
 
     public MergeResult run(List<ParseResult> inputs) {
+        return run(inputs, Constraints.NONE);
+    }
+
+    /**
+     * @param constraints a reviewer's merge / keep-separate answers; they outrank every
+     *                    score, and a merge edge cut to honour one goes back to review
+     */
+    public MergeResult run(List<ParseResult> inputs, Constraints constraints) {
         List<NormalizedRecord> records = RecordNormalizer.normalizeAll(
                 inputs.stream().flatMap(input -> input.records().stream()).toList());
-        Matcher.Result matched = matcher.match(records);
+        Matcher.Result matched = matcher.match(records, constraints);
 
-        List<Cluster> resolved = clusters.resolve(records, matched.merges());
+        ClusterResolver.Resolution resolution =
+                clusters.resolve(records, matched.merges(), constraints);
+        List<Cluster> resolved = resolution.clusters();
+        List<PairDecision> merges = matched.merges().stream()
+                .filter(m -> resolution.cut().stream().noneMatch(c -> c == m)).toList();
+        List<PairDecision> reviews = new ArrayList<>(matched.reviews());
+        for (PairDecision cut : resolution.cut()) {
+            reviews.add(new PairDecision(cut.pair(), Decision.REVIEW, cut.score(),
+                    cut.rule() + "+cut:keep-separate", cut.features()));
+        }
         Map<String, Integer> sourceKeyUses = new HashMap<>();
         for (Cluster cluster : resolved) {
             for (String key : sourceKeys(cluster)) {
@@ -130,7 +150,6 @@ public final class MergePipeline {
         diagnostics.addAll(ambiguousKeyWarnings(resolved, sourceKeyUses));
 
         return new MergeResult(writer.write(entries, preambles, dialect), entries,
-                matched.merges(), matched.reviews(), diagnostics, records.size(),
-                matched.comparisons());
+                merges, reviews, diagnostics, records.size(), matched.comparisons());
     }
 }

@@ -9,6 +9,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import io.bibmerge.core.match.Constraints;
+import io.bibmerge.core.model.CanonicalEntry;
 import io.bibmerge.core.model.ParseResult;
 import io.bibmerge.core.parse.BibParser;
 import io.bibmerge.core.serialize.Dialect;
@@ -103,6 +105,72 @@ class MergePipelineTest {
         assertTrue(twice.reviews().isEmpty());
         assertEquals(once.entries().stream().map(e -> e.key()).toList(),
                 twice.entries().stream().map(e -> e.key()).toList());
+    }
+
+    /** Review in the browser: the reviewer's answers change the merged file. */
+    @Test
+    void humanDecisionsChangeTheOutput() {
+        ParseResult input = new BibParser().parse("t.bib", """
+                @article{dh76, author = {Whitfield Diffie and Martin E. Hellman},
+                  title = {New Directions in Cryptography}, year = 1976,
+                  doi = {10.1109/TIT.1976.1055638}}
+                @article{DiffieH76, author = {Diffie, W. and Hellman, M.},
+                  title = {{NEW DIRECTIONS IN CRYPTOGRAPHY}}, year = 1976,
+                  doi = {https://doi.org/10.1109/tit.1976.1055638}}
+                @inproceedings{s1, author = {Carol Fictional}, title = {Faster Sieving, Part {I}},
+                  booktitle = {TCC}, year = 2019}
+                @inproceedings{s2, author = {Carol Fictional}, title = {Faster Sieving, Part {II}},
+                  booktitle = {TCC}, year = 2019}
+                """);
+        List<String> h = input.records().stream().map(r -> r.contentHash()).toList();
+        MergePipeline pipeline = MergePipeline.withDefaults(Dialect.BIBLATEX);
+        assertEquals(3, pipeline.run(List.of(input)).entries().size());
+
+        MergeResult decided = pipeline.run(List.of(input),
+                Constraints.NONE.keepSeparate(h.get(0), h.get(1)).merge(h.get(2), h.get(3)));
+
+        assertEquals(3, decided.entries().size());
+        assertEquals(List.of("human:merge"),
+                decided.merges().stream().map(d -> d.rule()).toList());
+    }
+
+    /**
+     * Adding a paper later: upload the earlier merged.bib together with the new paper.
+     * Existing entries keep their keys and old aliases; nothing is duplicated.
+     */
+    @Test
+    void addingAPaperToAnEarlierMergeKeepsKeysAndAliases() {
+        ParseResult a = new BibParser().parse("a.bib", """
+                @article{dh76, author = {Whitfield Diffie and Martin E. Hellman},
+                  title = {New Directions in Cryptography}, journal = {IEEE Trans. Inf. Theory},
+                  year = 1976, doi = {10.1109/TIT.1976.1055638}}
+                """);
+        ParseResult b = new BibParser().parse("b.bib", """
+                @article{DiffieH76, author = {Diffie, W. and Hellman, M.},
+                  title = {{NEW DIRECTIONS IN CRYPTOGRAPHY}}, year = 1976,
+                  doi = {https://doi.org/10.1109/tit.1976.1055638}}
+                """);
+        MergePipeline pipeline = MergePipeline.withDefaults(Dialect.BIBLATEX);
+        MergeResult first = pipeline.run(List.of(a, b));
+        String key = first.entries().get(0).key();
+
+        ParseResult earlier = new BibParser().parse("merged.bib", first.bib());
+        ParseResult c = new BibParser().parse("c.bib", """
+                @article{DH1976, author = {W. Diffie and M. Hellman},
+                  title = {New directions in cryptography}, year = 1976}
+                @book{knuth97, author = {Donald E. Knuth}, title = {The Art of Computer Programming},
+                  publisher = {Addison-Wesley}, year = 1997}
+                """);
+        MergeResult second = pipeline.run(List.of(earlier, c));
+
+        assertEquals(2, second.entries().size());
+        CanonicalEntry dh = second.entries().stream()
+                .filter(e -> e.key().equals(key)).findFirst().orElseThrow();
+        String ids = second.bib().lines().filter(l -> l.contains("ids = ")).findFirst().orElseThrow();
+        for (String old : List.of("dh76", "DiffieH76", "DH1976")) {
+            assertTrue(ids.contains(old), ids);
+        }
+        assertTrue(dh.fields().containsKey("doi"));
     }
 
     @Test
