@@ -37,6 +37,8 @@ public final class PdfReferenceExtractor {
     /** Page furniture that lands inside the list: licence stamps and bare page numbers. */
     private static final Pattern PAGE_FURNITURE = Pattern.compile(
             "(?im)^.*(?:authorized licensed use limited to|restrictions apply\\.?|downloaded on .{0,60} from ieee xplore).*$\\R?|(?m)^\\s*\\d{1,4}\\s*$\\R?");
+    /** Trailing lines of a few short tokens, as left by figure labels after the list. */
+    private static final Pattern TRAILING_FRAGMENTS = Pattern.compile("(?:\\R[^\\S\\r\\n]*(?:\\p{L}{1,3}[^\\S\\r\\n]*){1,3})+\\s*$");
     private static final Pattern END_OF_LIST = Pattern.compile(
             "(?im)^\\s*(?:[A-Z]\\.?\\s+)?(appendix|supplementary material)\\b.*$");
 
@@ -137,8 +139,11 @@ public final class PdfReferenceExtractor {
         }
         List<String[]> entries = new ArrayList<>();
         for (int i = 0; i < starts.size(); i++) {
-            int end = i + 1 < starts.size() ? starts.get(i + 1)[0] : section.length();
-            String body = joinLines(section.substring(starts.get(i)[1], end));
+            boolean last = i + 1 == starts.size();
+            int end = last ? section.length() : starts.get(i + 1)[0];
+            String raw = section.substring(starts.get(i)[1], end);
+            // After the last entry the text may run on into figure labels ("dP", "sP vP").
+            String body = joinLines(last ? TRAILING_FRAGMENTS.matcher(raw).replaceAll("") : raw);
             if (!body.isBlank()) {
                 entries.add(new String[] {labels.get(i), body});
             }

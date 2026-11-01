@@ -114,4 +114,12 @@ class PdfReferenceExtractorTest {
         assertTrue(result.records().isEmpty());
         assertEquals(Severity.ERROR, result.diagnostics().get(0).severity());
     }
+
+    @Test
+    void figureLabelsAfterTheLastEntryAreDropped() {
+        List<String[]> entries = PdfReferenceExtractor.split(
+                "[1] A. B. First title. Venue, 2000.\n[2] C. D. Last title. Venue,\n2001.\ndP\nsP vP\n");
+
+        assertEquals("C. D. Last title. Venue, 2001.", entries.get(1)[1]);
+    }
 }

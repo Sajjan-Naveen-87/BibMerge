@@ -136,6 +136,8 @@ final class ReferenceParser {
                 authors = sentences.get(0);
                 title = sentences.get(1);
                 venue = String.join(". ", sentences.subList(2, sentences.size()));
+                // "Title, 2001." when there is no venue: the year is not part of the title.
+                title = title.replaceAll(",\\s*(?:19|20)\\d\\d$", "");
             }
         }
 
@@ -199,7 +201,8 @@ final class ReferenceParser {
                 wordStart--;
             }
             String word = text.substring(wordStart, i).toLowerCase(Locale.ROOT);
-            boolean initial = word.length() <= 2 && !word.isEmpty()
+            // "M." or a hyphenated "B.-M."
+            boolean initial = (word.length() <= 2 || word.matches("\\p{L}\\.-\\p{L}")) && !word.isEmpty()
                     && Character.isUpperCase(text.charAt(wordStart));
             boolean abbreviation = word.matches("pp|vol|no|proc|eds?|trans|inf|comput|j|int|conf|symp|e\\.g|i\\.e|vs");
             // "In", "Proceedings" or "Journal" after a full stop always starts the venue, even
@@ -299,7 +302,9 @@ final class ReferenceParser {
             return null;
         }
         String v = venue.replaceAll("^(?i)in:?\\s+", "");
-        v = v.split("(?i),?\\s*(?:pp\\.|pages\\b|vol\\.|no\\.|\\d+\\s*\\(\\d+\\)|\\(\\d{4}\\))|,\\s*(?:19|20)\\d\\d\\b", 2)[0];
+        v = v.split("(?i),?\\s*(?:pp?\\.\\s*\\d|pages\\b|vol\\.|no\\.|\\d+\\s*\\(\\d+\\)|\\(\\d{4}\\))"
+                + "|,\\s*(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\p{L}*\\.?\\s+)?(?:19|20)\\d\\d\\b"
+                + "|,?\\s*(?:\\d+\\s*)?:\\s*\\d+\\s*[-\u2013]+\\s*\\d+", 2)[0];
         v = v.replaceAll("[,.]?\\s*(?:19|20)\\d\\d\\.?\\s*$", "");
         v = v.replaceAll("[,;:\\s]+$", "").strip();
         // Keep the dot of an abbreviation ("Remote Sens."), drop a sentence's full stop.

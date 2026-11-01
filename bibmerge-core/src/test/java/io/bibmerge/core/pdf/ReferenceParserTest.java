@@ -9,6 +9,15 @@ import org.junit.jupiter.api.Test;
 class ReferenceParserTest {
 
     @Test
+    void hyphenatedInitialsDoNotEndTheAuthorList() {
+        ReferenceParser.Parsed p = ReferenceParser.parse("C.-C. Chang and C.-J. Lin. LIBSVM: a "
+                + "library for support vector machines, 2001.");
+
+        assertEquals("C.-C. Chang and C.-J. Lin", p.fields().get("author"));
+        assertEquals("LIBSVM: a library for support vector machines", p.fields().get("title"));
+    }
+
+    @Test
     void ieeeStyleWithQuotedTitle() {
         ReferenceParser.Parsed p = ReferenceParser.parse("W. Diffie and M. E. Hellman, \"New "
                 + "directions in cryptography,\" IEEE Transactions on Information Theory, vol. 22, "
@@ -135,6 +144,22 @@ class ReferenceParserTest {
         assertEquals("Four-component scattering model for polarimetric SAR image decomposition",
                 p.fields().get("title"));
         assertEquals("2005", p.fields().get("year"));
+    }
+
+    @Test
+    void venueStopsAtGbPagesAndAtMonthAndYear() {
+        ReferenceParser.Parsed gb = ReferenceParser.parse("Zou B, Cao N, Wang X. Asymmetric "
+                + "decomposition method[C] Proc. of IGARSS 2012: 5907-5910.");
+        ReferenceParser.Parsed plain = ReferenceParser.parse("Rongjun Qin. Automated 3d recovery. "
+                + "In ASPRS annual Conference, Baltimore, Maryland, USA, March 2017, p. 10.");
+
+        assertEquals("Proc. of IGARSS", gb.fields().get("booktitle"));
+        assertEquals("5907--5910", gb.fields().get("pages"));
+        assertEquals("ASPRS annual Conference, Baltimore, Maryland, USA", plain.fields().get("booktitle"));
+
+        ReferenceParser.Parsed volumeColonPages = ReferenceParser.parse("David G. Lowe. Distinctive "
+                + "image features. International Journal of Computer Vision, 60:91\u2013110, 2004.");
+        assertEquals("International Journal of Computer Vision", volumeColonPages.fields().get("journal"));
     }
 
     @Test
