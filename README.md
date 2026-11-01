@@ -108,6 +108,9 @@ and never committed (design doc ADR-14).
 
 ## Building and running
 
+**Just want to use it?** Read [doc/USER-GUIDE.md](doc/USER-GUIDE.md): install, merge
+in the browser, read the results, and fix common problems.
+
 Requirements: JDK 21+ and Node 22+.
 
 ```bash
