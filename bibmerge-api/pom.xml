@@ -18,6 +18,13 @@
     <dependency>
       <groupId>io.bibmerge</groupId>
       <artifactId>bibmerge-core</artifactId>
+      <exclusions>
+        <!-- PDFBox's commons-logging clashes with Spring's spring-jcl, which provides the same API. -->
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

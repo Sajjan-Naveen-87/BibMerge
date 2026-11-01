@@ -23,6 +23,8 @@ public class BibMergeApplication {
                                                 list duplicate decisions
               java -jar bibmerge.jar merge <a.bib> <b.bib> ... -o <merged.bib>
                     [--dialect bibtex|biblatex] write one merged bibliography
+
+            Inputs can be .bib files or papers' PDFs (their reference lists are read).
             """.formatted(BibMergeCore.VERSION);
 
     public static void main(String[] args) {

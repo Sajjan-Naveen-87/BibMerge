@@ -48,7 +48,7 @@ acknowledgement is attached as Appendix A of the proposal
 
 ## Features
 
-- Import and parse multiple `.bib` files.
+- Import and parse multiple `.bib` files, or read the reference list of a paper's PDF.
 - Detect duplicate references — DOI-first, then fuzzy matching on
   title / author / year.
 - Merge duplicates into a single canonical entry.

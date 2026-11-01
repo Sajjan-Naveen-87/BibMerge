@@ -9,8 +9,8 @@ Re-run everything with:
 ./mvnw verify
 ```
 
-Last full run: **190 test runs, 0 failures**, with PRs #7–#9 and the review-in-browser
-work combined (local branch `demo/local`). CI runs the same suite on every push and pull request
+Last full run: **210 test runs, 0 failures**, with PRs #10–#12, review in the browser and
+PDF input combined (local branch `demo/local`). CI runs the same suite on every push and pull request
 (`.github/workflows/ci.yml`).
 
 ## 1. Acceptance criteria from the proposal
@@ -50,6 +50,18 @@ work combined (local branch `demo/local`). CI runs the same suite on every push 
 | Decisions change the merged file | `MergePipelineTest.humanDecisionsChangeTheOutput` | Split and forced merge both reflected | Pass |
 | Through the web API | `MergeControllerTest.keepSeparateDecisionSplitsTheMerge`, `pairsCarryTheEvidenceForTheReviewer`, `badDecisionsAreBadRequest` | Split applied; evidence returned; bad input gives 400 | Pass |
 | In the browser | Manual click-through, 1 Nov: 3 demo files, 14 records → 10 entries, 1 for review. "Same paper" → 9 entries; "Not the same" on Diffie–Hellman → 10; Undo → 9 | As described | Pass |
+
+## 2c. Papers' PDFs as input
+
+| Case | Test | Expected behaviour | Result |
+|---|---|---|---|
+| IEEE, Springer LNCS, plain/ACM, ePrint and arXiv reference strings | `ReferenceParserTest` (9) | Title, authors, venue, year, pages and identifiers read correctly | Pass |
+| `[1]`, `[BR93]` and `1.` labelled lists, lines wrapped and hyphenated | `PdfReferenceExtractorTest` | One record per reference, keys `<file>-<label>` | Pass |
+| PDF with no reference list; corrupt PDF | `PdfReferenceExtractorTest` | Warning or error, never an exception | Pass |
+| PDF reference shares a DOI with a `.bib` entry | `PdfMergeTest.sharedDoiMergesAndBibValuesWin` | Merged; `.bib` values kept; the PDF key is not an alias | Pass |
+| PDF reference matches only by similarity | `PdfMergeTest.fuzzyMatchFromAPdfGoesToReviewNotMerge` | Sent to review (`cap:from-pdf`), not merged | Pass |
+| PDF upload through CLI and web | `CliTest.matchReadsReferencesFromAPdf`, `MergeControllerTest.pdfUploadIsReadAndMerged` | Read and merged | Pass |
+| Real PDFs | Manual, 1 Nov: `demo/paper-a.bib` compiled with LaTeX in `plain`, `alpha` and `ieeetr` styles, each PDF merged with `demo/paper-b.bib` | 18 of 18 references read with correct title, authors and year; in each style the 4 true duplicates were found (3 merged, 1 sent to review), 0 false merges | Pass |
 
 ## 3. Manual checks
 

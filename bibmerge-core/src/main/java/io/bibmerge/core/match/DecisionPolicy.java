@@ -120,7 +120,10 @@ public final class DecisionPolicy {
 
         // Rule 10: thresholds.
         if (score >= config.tauHigh()) {
-            return capped(pair, Decision.MERGE, score, "score>=tauHigh", cap, features);
+            // A record read from a PDF is approximate: a score alone never merges it.
+            String scoreCap = cap == null && (a.source().fromPdf() || b.source().fromPdf())
+                    ? "cap:from-pdf" : cap;
+            return capped(pair, Decision.MERGE, score, "score>=tauHigh", scoreCap, features);
         }
         if (score >= config.tauLow()) {
             return decision(pair, Decision.REVIEW, score, "tauLow<=score<tauHigh", features);

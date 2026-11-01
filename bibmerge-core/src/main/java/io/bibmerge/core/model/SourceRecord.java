@@ -60,6 +60,15 @@ public record SourceRecord(
                 contentHash);
     }
 
+    /**
+     * True for a record read from a PDF's printed reference list. Such records are
+     * approximate: the engine never auto-merges them on score alone, prefers {@code .bib}
+     * values over theirs, and never writes their keys out as aliases.
+     */
+    public boolean fromPdf() {
+        return sourceFile.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf");
+    }
+
     /** An effective field value, absent when missing or blank. */
     public Optional<String> field(String name) {
         return Optional.ofNullable(effectiveFields.get(name)).filter(v -> !v.isBlank());

@@ -229,20 +229,25 @@ function App() {
     <main>
       <h1>BibMerge</h1>
       <p className="lede">
-        Upload the <code>.bib</code> files of several papers. Duplicates are merged into one clean
+        Upload the <code>.bib</code> files of several papers, or their PDFs. Duplicates are merged into one clean
         bibliography; old citation keys keep working as <code>ids</code> aliases.
       </p>
       <p className="note">
         Adding a new paper later? Upload your earlier <code>merged.bib</code> together with the new
         paper&apos;s <code>.bib</code>. Existing entries keep their keys.
       </p>
+      <p className="note">
+        Only have a PDF? Upload it: BibMerge reads its reference list. Text read from a PDF is
+        approximate, so a PDF reference merges only on a shared DOI, arXiv or ePrint id or an exact
+        match, and otherwise waits for you under <em>Needs review</em>.
+      </p>
 
       <div className="controls">
         <input
           type="file"
-          accept=".bib"
+          accept=".bib,.pdf"
           multiple
-          aria-label="BibTeX files"
+          aria-label="BibTeX or PDF files"
           onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
         />
         <label>

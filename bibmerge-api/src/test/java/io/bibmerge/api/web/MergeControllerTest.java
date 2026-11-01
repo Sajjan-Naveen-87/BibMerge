@@ -103,6 +103,20 @@ class MergeControllerTest {
     }
 
     @Test
+    void pdfUploadIsReadAndMerged() throws Exception {
+        byte[] pdf = io.bibmerge.api.TestPdfs.pdf(java.util.List.of("References",
+                "[1] W. Diffie and M. Hellman, \"New directions in cryptography,\" 1976.",
+                "    doi:10.1109/TIT.1976.1055638"));
+
+        mvc.perform(multipart("/api/merge").file(bib("a.bib", SAME_DOI_A))
+                .file(new MockMultipartFile("files", "paper.pdf", "application/pdf", pdf)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries").value(1))
+                .andExpect(jsonPath("$.merges[0].rule").value("identifier-agree"))
+                .andExpect(jsonPath("$.diagnostics[0]", Matchers.containsString("Read 1 references")));
+    }
+
+    @Test
     void unknownDialectIsBadRequest() throws Exception {
         mvc.perform(multipart("/api/merge").file(bib("a.bib", "@misc{k, title = {T}}"))
                 .param("dialect", "latex2"))

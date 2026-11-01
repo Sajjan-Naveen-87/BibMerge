@@ -25,6 +25,7 @@
     <jbibtex.version>1.0.20</jbibtex.version>
     <commons-text.version>1.15.0</commons-text.version>
     <icu4j.version>78.3</icu4j.version>
+    <pdfbox.version>3.0.3</pdfbox.version>
   </properties>
 
   <dependencyManagement>
@@ -55,6 +56,11 @@
         <groupId>com.ibm.icu</groupId>
         <artifactId>icu4j</artifactId>
         <version>${icu4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pdfbox</groupId>
+        <artifactId>pdfbox</artifactId>
+        <version>${pdfbox.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

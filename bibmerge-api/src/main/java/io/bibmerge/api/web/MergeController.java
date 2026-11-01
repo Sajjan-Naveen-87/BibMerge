@@ -24,7 +24,7 @@ import io.bibmerge.core.model.PairDecision;
 import io.bibmerge.core.model.ParseResult;
 import io.bibmerge.core.model.SourceRecord;
 import io.bibmerge.core.normalize.Text;
-import io.bibmerge.core.parse.BibParser;
+import io.bibmerge.core.parse.InputParser;
 import io.bibmerge.core.pipeline.MergePipeline;
 import io.bibmerge.core.pipeline.MergeResult;
 import io.bibmerge.core.serialize.Dialect;
@@ -95,11 +95,10 @@ class MergeController {
         }
         Constraints constraints = constraints(decisions);
 
-        BibParser parser = new BibParser();
         List<ParseResult> inputs = new ArrayList<>();
         for (MultipartFile file : files) {
             String name = file.getOriginalFilename() == null ? "upload.bib" : file.getOriginalFilename();
-            inputs.add(parser.parse(name, file.getBytes()));
+            inputs.add(InputParser.parse(name, file.getBytes()));
         }
 
         MergeResult result = MergePipeline.withDefaults(target).run(inputs, constraints);

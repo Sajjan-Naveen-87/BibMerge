@@ -69,7 +69,9 @@ public final class GoldenRecordBuilder {
         String key = keyMinter.mint(golden, taken);
         taken.add(key);
 
+        // Keys made up for references read from a PDF are not anyone's citation keys.
         List<String> retiredKeys = members.stream()
+                .filter(member -> !member.source().fromPdf())
                 .map(member -> member.source().key())
                 .filter(sourceKey -> !sourceKey.equals(key))
                 .distinct()
@@ -111,6 +113,10 @@ public final class GoldenRecordBuilder {
 
     private static boolean beats(NormalizedRecord challenger, NormalizedRecord holder,
             String name, boolean mixed) {
+        // A value someone wrote in a .bib file beats one read from a PDF's printed text.
+        if (challenger.source().fromPdf() != holder.source().fromPdf()) {
+            return !challenger.source().fromPdf();
+        }
         if (mixed && isVersionOfRecord(challenger) != isVersionOfRecord(holder)) {
             return isVersionOfRecord(challenger);
         }
@@ -133,7 +139,9 @@ public final class GoldenRecordBuilder {
         List<NormalizedRecord> candidates = mixed
                 ? members.stream().filter(GoldenRecordBuilder::isVersionOfRecord).toList()
                 : members;
-        return mostCommonType(candidates).orElseThrow();
+        List<NormalizedRecord> fromBib = candidates.stream()
+                .filter(m -> !m.source().fromPdf()).toList();
+        return mostCommonType(fromBib.isEmpty() ? candidates : fromBib).orElseThrow();
     }
 
     private static boolean isVersionOfRecord(NormalizedRecord record) {
