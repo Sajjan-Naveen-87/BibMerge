@@ -66,6 +66,16 @@ class AuthorNormalizerTest {
     }
 
     @Test
+    void familyNameEndingInEtalIsNotTruncation() {
+        AuthorList list = AuthorNormalizer.normalize("Pooja Vetal and Ravi Metal");
+
+        assertEquals(2, list.names().size());
+        assertEquals("vetal", list.names().get(0).family());
+        assertEquals("metal", list.names().get(1).family());
+        assertFalse(list.truncated());
+    }
+
+    @Test
     void splitsOnAndAcrossLineBreaks() {
         AuthorList list = AuthorNormalizer.normalize("Mihir Bellare\n    and Phillip Rogaway");
 
