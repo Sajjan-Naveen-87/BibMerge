@@ -59,6 +59,30 @@ class CliTest {
     }
 
     @Test
+    void missingFileErrorSaysWhatIsWrong() {
+        cli.run(new String[] {"merge", dir.resolve("nope.bib").toString(), "-o",
+                dir.resolve("out.bib").toString()});
+
+        String text = err.toString(StandardCharsets.UTF_8);
+        assertTrue(text.contains("file not found") && text.contains("nope.bib"), text);
+    }
+
+    @Test
+    void mergeReportsAKeyThatNamesDifferentWorks() throws Exception {
+        Path a = write("a.bib", "@article{smith20, author = {John Smith},"
+                + " title = {Graph Colouring Made Easy}, year = 2020}");
+        Path b = write("b.bib", "@article{smith20, author = {Jane Smith},"
+                + " title = {Quantum Error Correction Codes}, year = 2020}");
+
+        int code = cli.run(new String[] {"merge", a.toString(), b.toString(), "-o",
+                dir.resolve("out.bib").toString()});
+
+        assertEquals(Cli.OK, code);
+        String text = err.toString(StandardCharsets.UTF_8);
+        assertTrue(text.contains("'smith20' names different works"), text);
+    }
+
+    @Test
     void mergeWithoutOutputIsUsageError() throws Exception {
         Path a = write("a.bib", "@article{k, title = {T}}");
 

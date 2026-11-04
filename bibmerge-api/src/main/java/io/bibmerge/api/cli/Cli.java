@@ -3,7 +3,9 @@ package io.bibmerge.api.cli;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +57,12 @@ public final class Cli {
                 case "merge" -> merge(args);
                 default -> usage("unknown command " + args[0]);
             };
+        } catch (NoSuchFileException e) {
+            err.println("error: file not found: " + e.getFile());
+            return IO_ERROR;
+        } catch (AccessDeniedException e) {
+            err.println("error: permission denied: " + e.getFile());
+            return IO_ERROR;
         } catch (IOException e) {
             err.println("error: " + e.getMessage());
             return IO_ERROR;
@@ -124,7 +132,8 @@ public final class Cli {
 
         Files.writeString(output, result.bib(), StandardCharsets.UTF_8);
         printDecisions("REVIEW", result.reviews());
-        printDiagnostics(inputs);
+        // The pipeline's diagnostics: parse problems plus merge-level warnings.
+        result.diagnostics().forEach(err::println);
         out.printf(Locale.ROOT, "%d records -> %d entries (%d merges, %d left for review),"
                 + " written to %s%n", result.records(), result.entries().size(),
                 result.merges().size(), result.reviews().size(), output);
