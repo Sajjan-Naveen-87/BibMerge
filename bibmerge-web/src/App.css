@@ -95,3 +95,116 @@ pre {
   color: #c0392b;
   font-weight: 600;
 }
+
+.paper .title {
+  font-weight: 600;
+}
+
+.paper .meta,
+.paper .where {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.paper .where {
+  font-family: ui-monospace, monospace;
+}
+
+th.num,
+td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+td.actions {
+  white-space: nowrap;
+}
+
+td.actions button {
+  margin: 0 0.3rem 0.3rem 0;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.6rem;
+}
+
+button.link {
+  display: block;
+  margin-top: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #3b6fb6;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.evidence-row td {
+  background: #8881;
+}
+
+.evidence {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 34rem;
+  font-size: 0.82rem;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 8rem 1fr 3rem;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #8883;
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: #3b6fb6;
+}
+
+.absent {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.decisions {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+}
+
+.decisions li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.decisions button.link {
+  display: inline;
+  margin: 0 0 0 0.5rem;
+}
+
+.tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+}
+
+.tag.merge {
+  background: #2d7a4c33;
+}
+
+.tag.separate {
+  background: #ad363633;
+}

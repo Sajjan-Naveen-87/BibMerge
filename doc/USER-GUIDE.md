@@ -70,9 +70,24 @@ To stop BibMerge, press Ctrl+C in the terminal where it runs.
 
 | Section | What it means | What to do |
 |---|---|---|
-| **Merged** | Pairs judged to be the same work. The **Why** column names the rule, e.g. `identifier-agree` (same DOI or arXiv id) or `deterministic-key` (same title, first author and year). | Skim it. A wrong merge is the one thing worth reporting. |
-| **Needs review** | Pairs that look alike but not enough to be sure. They are **not** merged. | Check each pair. If two really are the same paper, delete one entry by hand in `merged.bib`. |
+| **Needs review** | Pairs that look alike but not enough to be sure. They are **not** merged until you decide. | Click **Same paper** or **Different** on each pair. |
+| **Merged** | Pairs judged to be the same work. The **Why** column says why in plain words, e.g. "same DOI, arXiv or ePrint id". | Skim it. If a pair is wrong, click **Not the same**. |
 | **Warnings** | Problems in your input files, with file name and line. | Fix the input file and merge again (see below). |
+
+**Show evidence** under any pair shows how similar the two entries are on title,
+authors, year, venue and so on, from 0 (different) to 1 (identical). "No information"
+means one entry lacked that field, so it didn't count either way.
+
+### Correcting BibMerge
+
+Every click re-runs the merge at once, and `merged.bib` changes to match. Your answers
+are listed under **Your decisions**, where **Undo** takes one back. They apply for as
+long as the page stays open. A decision is about the entries' content, not their keys,
+so it still applies if you upload the same entry again from another file.
+
+If you mark two entries as **Not the same** but each still matches a third entry, the
+weakest of those links is undone too and that pair moves to **Needs review**, so you
+can decide it as well.
 
 ## 4. Use the merged file
 
@@ -84,6 +99,28 @@ Replace the old `.bib` files in your LaTeX project with `merged.bib`. With bibla
 ```
 
 Compile as usual (`latexmk -pdf paper.tex`). Old keys such as `\cite{dh76}` still work.
+
+### Only have a paper's PDF?
+
+You can upload a PDF instead of a `.bib`. BibMerge reads the paper's reference list
+(the section headed *References* or *Bibliography*) and turns each reference into an
+entry. It works with the common styles: numbered `[1]`, labelled `[BR93]` and `1.`.
+
+Text read from a PDF is approximate, so BibMerge is stricter with it:
+
+- a PDF reference merges with an entry from a `.bib` only if they share a DOI, arXiv or
+  ePrint id, or have exactly the same title, first author and year;
+- anything less certain goes to **Needs review** for you to decide;
+- when a `.bib` entry and a PDF reference merge, the `.bib` values are kept;
+- PDF references have no citation keys of their own, so none are added to `ids`.
+
+Scanned PDFs (pictures of pages, with no selectable text) cannot be read.
+
+### Adding a paper later
+
+Upload your earlier `merged.bib` **together with** the new paper's `.bib` and merge.
+Entries already in `merged.bib` keep their keys and their old aliases, the new paper's
+references are matched onto them, and only genuinely new works are added.
 
 ## 5. Command line (no browser)
 
@@ -113,10 +150,13 @@ Add `--dialect bibtex` for classic BibTeX output. Warnings go to the terminal.
 | `Skipped malformed entry` with a file and line | That entry has a missing `}` or a similar typo | Fix the entry at that line. The rest of the file was still merged. |
 | `Duplicate citation key ... in this file` | One file uses the same key twice | Both entries are kept. Rename one key in that file if they are different works. |
 | `0 records` for a file | It isn't a BibTeX file, or it's empty | Export the bibliography as `.bib` again from your reference manager or Overleaf |
+| `No reference list found in this PDF` | The PDF has no *References* / *Bibliography* heading BibMerge recognises | Use the paper's `.bib` file instead (Overleaf or arXiv source) |
+| `No text found in this PDF` | A scanned PDF: the pages are images | Use the `.bib` file, or a PDF with selectable text |
+| A PDF reference you know is a duplicate is under **Needs review** | PDF references never merge on similarity alone | Click **Same paper** |
 | `crossref ... is not defined in this file` | An entry points at a parent entry (usually proceedings) that is in another file | Put the parent entry in the same file, or ignore it: the entry is still merged, with less information |
 | `Undefined @string` | The file uses an abbreviation like `journal = jacm` without defining it | Add the `@string{...}` line, or write the full name |
-| A pair you know is the same paper is under **Needs review** | BibMerge saw some disagreement (year, venue, missing fields) and chose not to guess | Keep one entry by hand. This is intended: a wrong merge would lose a citation. |
-| Two different papers were merged | A false merge, which should not happen | Please report it with both original entries; see below. |
+| A pair you know is the same paper is under **Needs review** | BibMerge saw some disagreement (year, venue, missing fields) and chose not to guess | Click **Same paper**. This is intended: a wrong merge would lose a citation. |
+| Two different papers were merged | A false merge | Click **Not the same**, and please report it with both original entries (see below) |
 | Old keys don't resolve after compiling | The output was classic BibTeX, or the document uses `bibtex` instead of `biber` | Use the biblatex output with `backend=biber` |
 
 ### Reporting a problem
@@ -131,7 +171,8 @@ Send the team:
 
 - Made for the bibliographies of a handful of papers (hundreds of entries). 2,000
   entries take about half a minute.
-- Each merge starts fresh: BibMerge doesn't store a library between runs. To add a
-  new paper, merge again with **all** the `.bib` files, old and new.
+- BibMerge doesn't store anything between visits. To add a paper, upload your earlier
+  `merged.bib` with the new file. Your **Same paper / Different** answers last until
+  you close or reload the page.
 - No internet connection is needed, and nothing you upload leaves your computer.
   The browser page talks only to the copy running on your machine.

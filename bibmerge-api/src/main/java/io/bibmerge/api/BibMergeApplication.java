@@ -23,6 +23,8 @@ public class BibMergeApplication {
                                                 list duplicate decisions
               java -jar bibmerge.jar merge <a.bib> <b.bib> ... -o <merged.bib>
                     [--dialect bibtex|biblatex] write one merged bibliography
+
+            Inputs can be .bib files or papers' PDFs (their reference lists are read).
             """.formatted(BibMergeCore.VERSION);
 
     public static void main(String[] args) {
@@ -32,6 +34,9 @@ public class BibMergeApplication {
             return;
         }
         if (Cli.handles(args)) {
+            // PDFBox warns about unmapped font glyphs in many papers; that is not the user's concern.
+            ((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("org.apache.pdfbox"))
+                    .setLevel(ch.qos.logback.classic.Level.ERROR);
             System.exit(new Cli(System.out, System.err).run(args));
         }
         SpringApplication.run(BibMergeApplication.class, args);

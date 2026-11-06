@@ -17,7 +17,7 @@ import io.bibmerge.core.model.ParseDiagnostic;
 import io.bibmerge.core.model.ParseResult;
 import io.bibmerge.core.model.SourceRecord;
 import io.bibmerge.core.normalize.RecordNormalizer;
-import io.bibmerge.core.parse.BibParser;
+import io.bibmerge.core.parse.InputParser;
 import io.bibmerge.core.pipeline.MergePipeline;
 import io.bibmerge.core.pipeline.MergeResult;
 import io.bibmerge.core.serialize.Dialect;
@@ -141,10 +141,9 @@ public final class Cli {
     }
 
     private List<ParseResult> parseAll(List<Path> files) throws IOException {
-        BibParser parser = new BibParser();
         List<ParseResult> results = new ArrayList<>();
         for (Path file : files) {
-            results.add(parser.parse(file));
+            results.add(InputParser.parse(file));
         }
         return results;
     }

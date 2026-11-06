@@ -48,7 +48,7 @@ acknowledgement is attached as Appendix A of the proposal
 
 ## Features
 
-- Import and parse multiple `.bib` files.
+- Import and parse multiple `.bib` files, or read the reference list of a paper's PDF.
 - Detect duplicate references — DOI-first, then fuzzy matching on
   title / author / year.
 - Merge duplicates into a single canonical entry.
@@ -127,6 +127,14 @@ Command line, no server needed:
 ```bash
 java -jar bibmerge-api/target/bibmerge.jar match demo/paper-a.bib demo/paper-b.bib
 java -jar bibmerge-api/target/bibmerge.jar merge demo/*.bib -o merged.bib
+```
+
+With Docker instead (no JDK or Node needed):
+
+```bash
+docker build -t bibmerge:final .
+docker run --rm -p 8091:8091 bibmerge:final                           # web app
+docker run --rm bibmerge:final match demo/paper-a.bib demo/paper-b.bib  # CLI
 ```
 
 Front-end development with hot reload (proxies `/api` to the backend on 8091):

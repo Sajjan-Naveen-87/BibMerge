@@ -29,3 +29,10 @@ doc/*.fdb_latexmk
 doc/*.fls
 doc/*.out
 doc/*.synctex.gz
+
+# IIIT Manipur project file -- local only, never pushed
+Report_Format___BTech_CSE_IIIT_Manipur__1___1_.zip
+iiitm-submission/
+
+# Docker image saved for the Drive upload
+*.tar.gz

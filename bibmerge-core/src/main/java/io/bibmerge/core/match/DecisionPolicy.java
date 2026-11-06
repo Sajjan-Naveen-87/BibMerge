@@ -15,8 +15,8 @@ import io.bibmerge.core.model.VersionRole;
  * Stage 6: the precedence ladder. The first rule that fires decides; caps can only
  * lower a MERGE to REVIEW. The rule name is recorded on every decision.
  *
- * <p>Rules 1–2 (human MUST_LINK / CANNOT_LINK constraints) arrive with the
- * ConstraintStore. One rule is added to the design's ladder: {@code title-dissimilar}.
+ * <p>Rules 1–2 are human decisions ({@link Constraints}): keep-separate, then merge.
+ * They come before every veto. One rule is added to the design's ladder: {@code title-dissimilar}.
  * Without it, two different papers by the same authors in the same venue and year
  * score about 0.68 on author, year and venue agreement alone and flood the review
  * queue. To be revisited when thresholds are fitted.
@@ -38,8 +38,22 @@ public final class DecisionPolicy {
     }
 
     public PairDecision decide(CandidatePair pair, FeatureVector features, double score) {
+        return decide(pair, features, score, Constraints.NONE);
+    }
+
+    public PairDecision decide(CandidatePair pair, FeatureVector features, double score,
+            Constraints constraints) {
         NormalizedRecord a = pair.left();
         NormalizedRecord b = pair.right();
+        // Rules 1–2: a human has already answered this question.
+        String hashA = a.source().contentHash();
+        String hashB = b.source().contentHash();
+        if (constraints.keepsSeparate(hashA, hashB)) {
+            return decision(pair, Decision.DISTINCT, score, "human:keep-separate", features);
+        }
+        if (constraints.merges(hashA, hashB)) {
+            return decision(pair, Decision.MERGE, score, "human:merge", features);
+        }
         IdAgreement ids = features.idAgree();
         boolean versionPair = isPreprintAndVersionOfRecord(a, b);
         double titleJw = features.get(Feature.TITLE_JW).orElse(-1);
@@ -106,7 +120,10 @@ public final class DecisionPolicy {
 
         // Rule 10: thresholds.
         if (score >= config.tauHigh()) {
-            return capped(pair, Decision.MERGE, score, "score>=tauHigh", cap, features);
+            // A record read from a PDF is approximate: a score alone never merges it.
+            String scoreCap = cap == null && (a.source().fromPdf() || b.source().fromPdf())
+                    ? "cap:from-pdf" : cap;
+            return capped(pair, Decision.MERGE, score, "score>=tauHigh", scoreCap, features);
         }
         if (score >= config.tauLow()) {
             return decision(pair, Decision.REVIEW, score, "tauLow<=score<tauHigh", features);

@@ -83,6 +83,23 @@ class CliTest {
     }
 
     @Test
+    void matchReadsReferencesFromAPdf() throws Exception {
+        Path bib = write("a.bib", "@article{dh76, title = {New Directions in Cryptography},"
+                + " author = {Whitfield Diffie and Martin Hellman}, year = 1976,"
+                + " doi = {10.1109/TIT.1976.1055638}}");
+        Path pdf = Files.write(dir.resolve("paper.pdf"), io.bibmerge.api.TestPdfs.pdf(java.util.List.of(
+                "References",
+                "[1] W. Diffie and M. Hellman, \"New directions in cryptography,\" 1976.",
+                "    doi:10.1109/TIT.1976.1055638")));
+
+        int code = cli.run(new String[] {"match", bib.toString(), pdf.toString()});
+
+        String text = out.toString(StandardCharsets.UTF_8);
+        assertEquals(Cli.OK, code);
+        assertTrue(text.contains("paper.pdf:0 paper-ref1") && text.contains("1 merge"), text);
+    }
+
+    @Test
     void mergeWithoutOutputIsUsageError() throws Exception {
         Path a = write("a.bib", "@article{k, title = {T}}");
 
