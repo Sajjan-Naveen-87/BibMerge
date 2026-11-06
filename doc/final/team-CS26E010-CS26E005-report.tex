@@ -1,0 +1,186 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=0.7in,top=0.6in,bottom=0.7in]{geometry}
+\usepackage{setspace}
+\setlength{\parskip}{0.3em}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{xcolor}
+\usepackage{calc}
+
+% Compact section headings.
+\usepackage[compact]{titlesec}
+\titlespacing*{\section}{0pt}{1.0ex plus .2ex minus .1ex}{0.4ex plus .1ex}
+
+% Red text = still to fill in before submitting.  Search for \fillin.
+\newcommand{\fillin}[1]{\textcolor{red}{[#1]}}
+
+\title{CS5013 Final Project Report \\
+       \large\textit{BibMerge: one bibliography from many papers' references}}
+\author{S Naveen, CS26E010 \and Gowni Vamshi, CS26E005}
+\date{}
+
+\begin{document}
+\maketitle
+
+\vspace{-2.0em}
+
+\begin{description}[leftmargin=!,labelwidth=\widthof{\textbf{Submission commit:}},nosep,font=\bfseries]
+  \item[Team Name:]         \fillin{team name}
+  \item[Repository:]      \url{https://github.com/Sajjan-Naveen-87/BibMerge}
+  \item[Submission commit:] \texttt{\fillin{40-char SHA}} (tag \texttt{final-submission}, date: \texttt{\fillin{YYYY-MM-DD}}).
+  \item[Docker image:]    \fillin{Google Drive share link} (view access to course staff).
+  \item[Tagline:]         \textit{Reads the \texttt{.bib} files or PDFs of several papers,
+                          finds references that name the same work, and writes one
+                          \texttt{.bib} in which every old citation key still works.}
+\end{description}
+
+\textbf{AI-authorship clause.}
+\textit{%
+We used AI tools to help draft parts of this report.  The claims,
+numbers, commit references, stakeholder statements, and the Docker
+image are our own; the prose shaping may have been assisted.  We can
+defend every sentence of this report, and every line of code in the
+submission commit, in the viva.%
+}
+
+\section{Executive summary}
+
+Researchers who combine the references of several papers (for a survey, a
+thesis or a group library) find the same work under different citation keys,
+with titles, author lists and venues written differently.  Our stakeholder,
+Prof.\ Ashrujit Ghoshal (CSE, IIT Madras), reconciles these by hand and has to
+redo the check every time a paper is added.
+
+We shipped a Java~21 merge engine served as one JAR with a web app and a CLI.
+A user uploads several \texttt{.bib} files or papers' PDFs, answers ``same
+paper / not the same'' for the few borderline pairs, and downloads one
+\texttt{merged.bib}; old keys survive as biblatex \texttt{ids} aliases, so
+existing \verb|\cite|s keep working, and a paper is added later by uploading
+the earlier \texttt{merged.bib} with it.  218 automated tests pass, and runs
+on real IACR ePrint and published IEEE papers gave no false merges.  Scope
+change since the proposal: we added PDF input; storing decisions between
+sessions was dropped.
+
+Stakeholder verdict: \fillin{accepted / partially accepted / not accepted}
+at the final demo on 5 November 2026.
+
+\section{Course concepts used in the project}
+
+Engine paths below are under \texttt{bibmerge-core/src/main/java/io/bibmerge/core/}.
+
+\begin{itemize}[leftmargin=*,nosep]
+  \item \textbf{\fillin{Module ?} -- Structured prompting.}  Every significant
+        prompt is logged verbatim beside its rewrite in our
+        Context / Task / Constraints / Acceptance / Report template, with the
+        commit it produced.  File: \texttt{doc/prompts/README.md}.
+        Commits: \texttt{2ae4d3b}, \texttt{eb0f911}.
+  \item \textbf{\fillin{Module ?} -- Design document as model context.}  Prompts
+        cite design-doc sections (pipeline stages, ADRs, package layout) instead
+        of restating them.  File: \texttt{design/design.md}.  Commit: \texttt{fc2ab05}.
+  \item \textbf{\fillin{Module ?} -- Spec tests as executable contracts.}  The
+        partner's stages 7--9 were handed over as interfaces plus
+        \texttt{@Disabled} tests stating exact behaviour; enabling them was the
+        definition of done.  File: \texttt{doc/tasks/vamshi-stages-7-9.md},
+        \texttt{cluster/UnionFind.java}.  Commits: \texttt{2c49127} $\to$ \texttt{656cec2}.
+  \item \textbf{\fillin{Module ?} -- Testing AI-written code.}  Normalizers are
+        checked against parameterised tables of real-world variants (16 DOI
+        forms, 17 LaTeX accents); each proposal acceptance criterion maps to a
+        named test.  Files: \texttt{doc/VERIFICATION.md},
+        \texttt{normalize/DoiNormalizerTest.java} (test tree).  Commit: \texttt{dad24a2}.
+  \item \textbf{\fillin{Module ?} -- Debugging: reproduce, failing test, fix.}
+        A real ePrint record carrying its published DOI bypassed a veto; the
+        fix landed with its regression tests.  File: \texttt{match/DecisionPolicy.java}.
+        Commit: \texttt{be07587}.
+  \item \textbf{\fillin{Module ?} -- Version control for code and prompts.}
+        Branch and PR per unit of work, CI (\texttt{mvn verify} + front-end lint
+        and build) on every PR, and a \texttt{Co-Authored-By} trailer on every
+        AI-assisted commit.  File: \texttt{.github/workflows/ci.yml}.
+        Commits: \texttt{f1e5e6f}, \texttt{639c999} (PR integration).
+  \item \textbf{\fillin{Module ?} -- Architecture guard rails.}  The Maven
+        enforcer bans Spring from the engine module, so generated code cannot
+        put merge logic in controllers.  File: \texttt{bibmerge-core/pom.xml}.
+        Commit: \texttt{f1e5e6f}.
+  \item \textbf{\fillin{Module ?} -- Human in the loop and explainability.}
+        Every pair decision records the rule that fired and its feature values;
+        a reviewer's answer overrides the score and every veto.  Files:
+        \texttt{match/Constraints.java}, \texttt{cluster/ClusterResolver.java},
+        \texttt{bibmerge-web/src/App.tsx}.  Commits: \texttt{7230470}, \texttt{2bb958b}.
+\end{itemize}
+
+\section{AI-usage summary}
+
+\textbf{Tools used.}
+Claude Code (Claude Opus) for nearly all AI-assisted work: 35 of our 48
+commits carry its co-author trailer.  Gemini Pro only for the live
+modification at the mid-evaluation, where it was the one tool allowed.
+\fillin{confirm or adjust: rough \% per tool}
+
+\textbf{One substantive help.}
+Claude Code drafted PDF input, \texttt{pdf/PdfReferenceExtractor.java} and
+\texttt{pdf/ReferenceParser.java}, with test tables for IEEE, Springer LNCS and ACM reference styles; it read
+18 of 18 references from our compiled test PDFs as written and needed only
+small fixes for published two-column papers (\texttt{4711e78}, \texttt{8fbbfcd}).
+
+\textbf{One substantive failure caught in review.}
+The AI-written key minter could mint a new key equal to another entry's
+retired key, so \verb|\cite{oldkey}| would silently resolve to a different
+paper; each module passed its own tests, and our boundary bug hunt caught it
+before it reached \texttt{main} (\texttt{d6b9b9b}): a \emph{silent behaviour
+change}, in the vocabulary of \fillin{Lecture 8/9 module name}.
+
+\textbf{Net-effect sentence.}
+Net help: the AI wrote most first drafts, but all six bugs in our debugging
+log were found by tests and real-data runs we put around its output, so the
+speed held only because we kept that review step.
+
+\section{Deployment and stakeholder handoff}
+
+\textbf{Build and run.}
+\begin{verbatim}
+  docker load -i bibmerge-final.tar.gz          # file from the Drive link
+  docker run --rm -p 8091:8091 bibmerge:final   # web app: http://localhost:8091
+  docker run --rm bibmerge:final match demo/paper-a.bib demo/paper-b.bib  # CLI
+\end{verbatim}
+
+\textbf{Where the artefact lives after the course.}
+\fillin{e.g.\ Prof.\ Ghoshal's laptop as \texttt{bibmerge.jar}, plus the public
+GitHub repository; say ``nowhere'' if that is the truth.}
+
+\textbf{Stakeholder quote (one sentence, verbatim).}
+\begin{quote}
+\textit{``\fillin{Prof.\ Ghoshal's own words from the final-demo email}''\\
+-- Ashrujit Ghoshal, Assistant Professor, CSE, IIT Madras, \fillin{date}.}
+\end{quote}
+
+\section{Known limitations}
+
+\begin{itemize}[leftmargin=*,nosep]
+  \item \textbf{Scale.}  Blocking compares every pair of records: 2,000 records
+        take 29\,s and 1.5\,GB, and the design target of 10,000 records in
+        10\,s is not met.
+  \item \textbf{No memory between sessions.}  Reviewer answers last one browser
+        session; adding a paper later works only if the user keeps and
+        re-uploads the earlier \texttt{merged.bib}.
+  \item \textbf{PDF input is approximate.}  Scanned PDFs without a text layer
+        give no references, and on published IEEE papers 1 of 26 references
+        came out with wrong fields; fuzzy PDF matches therefore go to review
+        rather than merging.
+\end{itemize}
+
+\section{Individual contributions}
+
+\begin{itemize}[leftmargin=*,nosep]
+  \item \textbf{S Naveen:} design document, scaffold and CI; engine stages 1--6
+        (parse, crossref, normalize, blocking, matching and decision rules);
+        CLI, REST API and web UI; reviewer decisions and the review page; PDF
+        input; edge-case hardening, \texttt{VERIFICATION.md} and the user guide.
+        \fillin{stakeholder liaison?}
+  \item \textbf{Gowni Vamshi:} engine stages 7--9: \texttt{UnionFind} and
+        \texttt{ClusterResolver} (clustering), \texttt{KeyMinter} and
+        \texttt{GoldenRecordBuilder} (merged records), \texttt{BibWriter}
+        (output), and their tests.  \fillin{anything else?}
+\end{itemize}
+
+\end{document}

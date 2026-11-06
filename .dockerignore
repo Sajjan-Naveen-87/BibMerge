@@ -1,0 +1,13 @@
+.git
+**/node_modules
+**/target
+**/dist
+corpus.local
+iiitm-submission
+*.zip
+doc
+design
+.github
+.idea
+.vscode
+*.tar.gz
