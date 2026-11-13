@@ -36,3 +36,5 @@ iiitm-submission/
 
 # Docker image saved for the Drive upload
 *.tar.gz
+# Demo video, kept on Google Drive
+*.mp4
